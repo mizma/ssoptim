@@ -41,6 +41,39 @@ Relevant Specification of the game itself are as follows.
   * The conditions may be very complex and vary between characters (hence the need to have party specific
     pluggable optimization calculation modules)
 
+~~~python
+damage = (
+    (
+        (
+            (
+                (
+                    Atk * ((skillPercentAmend + talentGroupPercentAmend) * 0.0001 / 100)
+                    + skillAbsAmend
+                    + talentGroupAbsAmend
+                )
+                * skillIntensity
+                * perkIntensity
+                * slotDmg
+                * elementDmg
+                * generalDmg
+                + dmgPlus
+            )
+            * (critDmg + slotCritDmg)
+            * (
+                erAmend
+                * defAmend
+                * slotDmgTaken
+                * elementDmgTaken
+                * generalDmgTaken
+                * resilienceBreakDmg
+            )
+        )
+        + dmgPlusTaken
+    )
+    * finalDmg
+) + finalDmgPlus
+~~~
+
 ### Characters Specification
 
 Characters have basic statuses as well as skills and talents for main attacker role and support role.

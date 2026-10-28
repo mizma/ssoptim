@@ -366,7 +366,9 @@ example yaml file for a character may look like the following
     # something similar to talents_main continue
 ~~~
 
-And party composition and optimization restriction config may look like the following
+### Optimization Options
+
+Party composition and optimization restriction config may look like the following
 
 ~~~yaml
 party:
@@ -395,10 +397,15 @@ restrictions:
   sub2:
     min: 10 # minimum of 10 levels should be set to sub2 character
     max: 20 # sub2 character total should not exceed 20
+optimization_function: "some module name?"
 ~~~
 
 Since skills and talent specifications are very complex, optimization target function should be built for
 at least each main character, if not for each specific party composition.
+
+For optimization_function specification, if loading some function based on yaml input is not viable,
+this may have to be changed depending on python specification and tool design.  But some way to specify
+which function to use for optimization target is necessary.
 
 ### Optimization target calculation plugin
 

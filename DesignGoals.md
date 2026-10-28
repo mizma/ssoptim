@@ -35,6 +35,7 @@ Relevant Specification of the game itself are as follows.
 ### Basic Damage Calculation
 
 * The basic damage calculation is defined [here](https://gist.github.com/AutumnVN/91afd7a37a9743488419b70f07225950).
+  * sample implementation for damage calculation is in [stella_sora_damage.py](./stella_sora_damage.py)
 * The individual parameters are calculated by character base stats, skill modifiers and talent modifiers.
 * Each talent has different modifiers for certain parameters and conditions.
   * Conditions include things like cool down time, after skill activation, when target has sigil.

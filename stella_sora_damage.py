@@ -58,7 +58,9 @@ def skill_percent_to_amend(percent: float) -> float:
 # --------------------------------------------------------------------------
 # DEF
 # --------------------------------------------------------------------------
-def effective_def(DEF: float, DEF_Ignore: float = 0.0, DEF_Penetrate: float = 0.0) -> float:
+def effective_def(
+    DEF: float, DEF_Ignore: float = 0.0, DEF_Penetrate: float = 0.0
+) -> float:
     """Effective_DEF = DEF * (1 - DEF_Ignore) - DEF_Penetrate
 
     DEF_Ignore and DEF_Penetrate are currently not used in game.
@@ -100,7 +102,9 @@ def _res_limits(eff_res: float) -> tuple[float, float, float, float]:
     return HIGH_RES_LIMITS
 
 
-def res_amend(RES: float, PEN: float = 0.0, VUL: float = 0.0, IGNORING: float = 0.0) -> float:
+def res_amend(
+    RES: float, PEN: float = 0.0, VUL: float = 0.0, IGNORING: float = 0.0
+) -> float:
     """erAmend: the damage multiplier from enemy RES, PEN and VUL.
 
     * Effective_RES <= 0 (suppress / VUL branch):
@@ -120,7 +124,7 @@ def res_amend(RES: float, PEN: float = 0.0, VUL: float = 0.0, IGNORING: float = 
     v_lo, v_hi, a_lo, a_hi = _res_limits(eff)
     ratio = (eff - v_lo) / (v_hi - v_lo)
     ratio = min(max(ratio, 0.0), 1.0)  # clamp: gaps between tiers and > 2000
-    reduction = a_lo + (a_hi - a_lo) * ratio ** 2
+    reduction = a_lo + (a_hi - a_lo) * ratio**2
     return 1 - reduction
 
 
@@ -129,38 +133,38 @@ def res_amend(RES: float, PEN: float = 0.0, VUL: float = 0.0, IGNORING: float = 
 # --------------------------------------------------------------------------
 def calculate_damage(
     # --- attacker stats ---
-    Atk: float,
-    skillPercentAmend: float,
-    talentGroupPercentAmend: float = 0.0,       # not used in game
-    skillAbsAmend: float = 0.0,                 # not used in game
-    talentGroupAbsAmend: float = 0.0,           # not used in game
-    skillIntensity: float = 1.0,                # "increase <skill> damage by x%" effects
-    perkIntensity: float = 1.0,                 # not used in game
-    slotDmg: float = 1.0,                       # Auto/Skill/Ultimate/Other/Mark/Projectile/Minion dmg
-    elementDmg: float = 1.0,                    # Aqua/Ignis/Terra/Ventus/Lux/Umbra dmg
-    generalDmg: float = 1.0,                    # not used in game
-    dmgPlus: float = 0.0,                       # not used in game
-    critDmg: float = 1.0,
-    slotCritDmg: float = 0.0,                   # slot-specific crit dmg, added to critDmg
-    is_crit: bool = True,
-    is_dot: bool = False,                       # damage over time never crits
+    Atk: float,                             # キャラ攻撃力
+    skillPercentAmend: float,               # スキルのダメージ倍率（主にスキルの表記より）
+    talentGroupPercentAmend: float = 0.0,   # not used in game 素質グループの割合ダメージ（未使用）
+    skillAbsAmend: float = 0.0,             # not used in game スキルの固定ダメージ加算値（未使用）
+    talentGroupAbsAmend: float = 0.0,       # not used in game 素質の固定ダメージ加算値（未使用）
+    skillIntensity: float = 1.0,            # 特定のスキルや攻撃の追加ダメージ倍率。特定スキル％。琥珀の「緻密温度調整」等
+    perkIntensity: float = 1.0,             # not used in game パーク？
+    slotDmg: float = 1.0,                   # 攻撃の種類に応じたダメージ補正。通常攻撃、スキル、必殺技、印、従者などの分類に対応する。
+    elementDmg: float = 1.0,                # 攻撃側の属性に応じたダメージ補正。水・火・地・風・光・闇の各属性に関連する。
+    generalDmg: float = 1.0,                # not used in game 汎用的なダメージ倍率補正（未使用）
+    dmgPlus: float = 0.0,                   # not used in game 固定値ダメージ加算補正（未使用）
+    critDmg: float = 1.5,                   # 会心ダメージ係数。基本は1.5倍。スキル、素質、紋章、装備等で増加
+    slotCritDmg: float = 0.0,               # 通常攻撃、スキル、必殺技、印、飛翔物、従者などの内部分類に対応するタイプ別会心ダメージ増加係数
+    crit_rate: float = 0.5,                 # 会心率。会心が発生する割合。
+    is_dot: bool = False,                   # スリップダメージか否か。スリップダメージは会心発生しない。
     # --- enemy stats ---
-    DEF: float = 500.0,
-    DEF_Ignore: float = 0.0,                    # not used in game
-    DEF_Penetrate: float = 0.0,                 # not used in game
-    RES: float = 750.0,                         # Favourable = 250, Neutral = 500, unfavourable = 2000
-    PEN: float = 0.0,
-    IGNORING: float = 0.0,                      # not used in game
-    VUL: float = 0.0,
-    slotDmgTaken: float = 1.0,
-    elementDmgTaken: float = 1.0,
-    generalDmgTaken: float = 1.0,               # not used in game
-    resilienceBreakDmg: float = DEFAULT_RESILIENCE_BREAK_DMG,  # assumed 150%
-    enemyBreakStatus: bool = False,             # set to use or not use resilienceBreakDmg
-    dmgPlusTaken: float = 0.0,                  # not used in game
+    DEF: float = 500.0,                     # 防御係数。基本は500らしい
+    DEF_Ignore: float = 0.0,                # not used in game 防御無視係数（未使用）
+    DEF_Penetrate: float = 0.0,             # not used in game 敵の防御値を固定値で差し引く補正値（未使用）
+    RES: float = 750.0,                     # 弱点属性 = 250, 中立 = 750, 耐性属性 = 2000
+    PEN: float = 0.0,                       # 属性貫通値。
+    IGNORING: float = 0.0,                  # not used in game
+    VUL: float = 0.0,                       # 属性耐性が０以下の場合に適用される補正値。詳細不明
+    slotDmgTaken: float = 1.0,              # ダメージの種別毎のダメージ補正
+    elementDmgTaken: float = 1.0,           # 属性被ダメージ係数。特定の属性にかかる倍率
+    generalDmgTaken: float = 1.0,           # not used in game 汎用ダメージ係数（未使用）
+    resilienceBreakDmg: float = DEFAULT_RESILIENCE_BREAK_DMG,  # ブレイク時ダメージ係数。基本150%
+    enemyBreakStatus: bool = False,         # ブレイク状態
+    dmgPlusTaken: float = 0.0,              # not used in game 未使用
     # --- final ---
-    finalDmg: float = 1.0,                      # not used in game
-    finalDmgPlus: float = 0.0,                  # not used in game
+    finalDmg: float = 1.0,                  # not used in game 未使用
+    finalDmgPlus: float = 0.0,              # not used in game 未使用
     # --- output ---
     as_int: bool = True,
 ) -> float | int:
@@ -202,7 +206,7 @@ def calculate_damage(
 
     Defaults for unused inputs are neutral, so only the inputs you care about
     need to be supplied. Note that RES defaults to 750 ("neutral" enemy, erAmend
-    0.4) and DEF defaults to 0 (defAmend 1.0); resilienceBreakDmg defaults to 1.5
+    0.4) and DEF defaults to 500 (defAmend 0.5); resilienceBreakDmg defaults to 1.5
     as assumed in the gist. Set resilienceBreakDmg=1.0 to ignore it.
     """
     er = res_amend(RES, PEN, VUL, IGNORING)
@@ -214,7 +218,11 @@ def calculate_damage(
     base *= skillIntensity * perkIntensity * slotDmg * elementDmg * generalDmg
     base += dmgPlus
 
-    crit_mult = (critDmg + slotCritDmg) if (is_crit and not is_dot) else 1.0
+    crit_mult = (
+        (((critDmg + slotCritDmg) * crit_rate) + (1 * (1 - crit_rate)))
+        if (not is_dot)
+        else 1.0
+    )
 
     taken_mult = er * de * slotDmgTaken * elementDmgTaken * generalDmgTaken
     if enemyBreakStatus:
@@ -236,12 +244,20 @@ if __name__ == "__main__":
         print(f"DEF {d}: defAmend = {def_amend(d):.11f} (gist: {expected})")
 
     for res, expected in [
-        (30, 0.9964), (140, 0.9216), (250, 0.75), (350, 0.64015967808),
-        (460, 0.60614375043), (570, 0.54783073161), (750, 0.4), (2000, 0.01),
+        (30, 0.9964),
+        (140, 0.9216),
+        (250, 0.75),
+        (350, 0.64015967808),
+        (460, 0.60614375043),
+        (570, 0.54783073161),
+        (750, 0.4),
+        (2000, 0.01),
     ]:
         print(f"RES {res}: erAmend = {res_amend(res):.11f} (gist: {expected})")
 
-    print(f"VUL 0.05, Effective_RES -60: erAmend = {res_amend(RES=-60, VUL=0.05):.4f} (gist: 1.032)")
+    print(
+        f"VUL 0.05, Effective_RES -60: erAmend = {res_amend(RES=-60, VUL=0.05):.4f} (gist: 1.032)"
+    )
 
     print(
         "Example damage:",

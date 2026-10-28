@@ -396,3 +396,15 @@ scipy.optimize expects for it's optimization parameter inputs.
 
 Other information like character data and party composition should be passed as a separate parameter using a closure
 or a lambda function.
+
+#### Common functions for optimization target
+
+In every target optimization function, it should take the common buf values from all the talents
+at the level specified and add all the common values and create a total value for each value specified
+in the talents at specified levels.  Mapping function to collect all items with the same key.
+
+After all the modifier values with same keys are collected into one dictionary, then each optimization function
+can do it's calculation with the values appropriately depending on the main character specification.
+
+Keep in mind that some characters reference HP or other parameters defined in the character information
+to calculate the damage output so character information must be passed to optimization target calculator function/module

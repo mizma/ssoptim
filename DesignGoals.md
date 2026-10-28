@@ -296,32 +296,56 @@ example yaml file for a character may look like the following
   talents_main:
     - talent_name: "<talent name>"
       core_talent: true
-      Atk_absMod: 0.0 # in reality, only put parts that actually have any value
+      Atk_absMod:
+        1: 200.0
       Atk_multiplier:
-        1: 0.15    # i.e. add 15% to attack multiplier (so total will be 1.15)
-      skillPercentAmend: 0.0
-      skillIntensity: 0.0
-      slotAutoAttackDmg: 0.0
-      slotSkillDmg: 0.0
-      slotUltimateDmg: 0.0
-      slotMarkDmg: 0.0
-      slotProjectileDmg: 0.0
-      slotMinionDmg: 0.0
-      elemAquaDmg: 0.0
-      elemIgnisDmg: 0.0
-      elemTerraDmg: 0.0
-      elemVentusDmg: 0.0
-      elemLuxDmg: 0.0
-      elemUmbraDmg: 0.0
-      critDmgMod: 0.0
-      slotAutoAttackCritDmg: 0.0
-      slotSkillCritDmg: 0.0
-      slotUltimateCritDmg: 0.0
-      slotMarkCritDmg: 0.0
-      slotProjectileCritDmg: 0.0
-      slotMinionCritDmg: 0.0
-      crit_rateMod: 0.0
-      DEF_rate_mod: 0.0
+        1: 0.15 # i.e. add 15% to attack multiplier (so total will be 1.15)
+      skillPercentAmend:
+        1: 0.0 # core talent has only level 0 or level 1
+      skillIntensity:
+        1: 0.0 # in reality, only put parts that actually have any value
+      slotAutoAttackDmg:
+        1: 0.0
+      slotSkillDmg:
+        1: 0.0
+      slotUltimateDmg:
+        1: 0.0
+      slotMarkDmg:
+        1: 0.0
+      slotProjectileDmg:
+        1: 0.0
+      slotMinionDmg:
+        1: 0.0
+      elemAquaDmg:
+        1: 0.0
+      elemIgnisDmg:
+        1: 0.0
+      elemTerraDmg:
+        1: 0.0
+      elemVentusDmg:
+        1: 0.0
+      elemLuxDmg:
+        1: 0.0
+      elemUmbraDmg:
+        1: 0.0
+      critDmgMod:
+        1: 0.0
+      slotAutoAttackCritDmg:
+        1: 0.0
+      slotSkillCritDmg:
+        1: 0.0
+      slotUltimateCritDmg:
+        1: 0.0
+      slotMarkCritDmg:
+        1: 0.0
+      slotProjectileCritDmg:
+        1: 0.0
+      slotMinionCritDmg:
+        1: 0.0
+      crit_rateMod:
+        1: 0.0
+      DEF_rate_mod:
+        1: 0.0
     - talent_name: "<talent name>"
       core_talent: true
       # details omitted
@@ -336,6 +360,7 @@ example yaml file for a character may look like the following
       Atk_multiplier:
         1: 0.045    # i.e. add 4.5% to attack multiplier (so total will be 1.15) at level 1
         6: 0.18     # add 18% at level 6.  level 2 - 5 may be omitted.  in which case the intermediates need to be inferred.
+        # When inferring intermediate levels, distribute them evenly between level 1 and level 6 values.
     # array continues for all talents for main role
   talents_sub:
     # something similar to talents_main continue
@@ -402,6 +427,7 @@ or a lambda function.
 In every target optimization function, it should take the common buf values from all the talents
 at the level specified and add all the common values and create a total value for each value specified
 in the talents at specified levels.  Mapping function to collect all items with the same key.
+All values should be collected including character specific keys.
 
 After all the modifier values with same keys are collected into one dictionary, then each optimization function
 can do it's calculation with the values appropriately depending on the main character specification.

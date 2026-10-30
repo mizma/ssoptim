@@ -1,13 +1,15 @@
 # SSOptim — Design Specification
 
 Status: **pre-implementation design spec** (version 0.1.0 T.B.D.)
-Source of intent: [DesignGoals.md](DesignGoals.md) · damage reference: [DamageCalculationParameters.md](DamageCalculationParameters.md), [stella_sora_damage.py](stella_sora_damage.py)
+Self-contained: this document restates the game-spec facts it depends on (§1.1) · damage reference: [DamageCalculationParameters.md](DamageCalculationParameters.md), [stella_sora_damage.py](stella_sora_damage.py)
 Project structure basis: [click-cutter](https://github.com/koma75/click-cutter) (Click CLI cookiecutter template, `cli_type = simple`, `use_config_yaml = Yes`)
 
 This document is the streamlined, decision-complete plan for building `ssoptim`.
 It restates the goals as testable requirements, fixes the data/plugin/CLI contracts,
-and defines the source tree. No implementation exists yet; §9 lists the order in which it will
-be built, and §12 records the decisions on the previously open questions.
+and defines the source tree. §1.1 restates the game model those requirements assume, so
+nothing here depends on any other document for background. No implementation exists yet;
+§9 lists the order in which it will be built, and §12 records the decisions on the
+previously open questions.
 
 ---
 
@@ -22,6 +24,32 @@ Everything that is *not* the talent level distribution (character stats, skills,
 enemy DEF/RES, rotation assumptions) is treated as constant input supplied by data files
 and by the objective-function plugin.
 
+### 1.1 Game-model background (restated so this document stands alone)
+
+The game facts below are the only external inputs this design relies on; they are restated
+here instead of delegated to any other document, so §3's requirements can be read on their own.
+
+* **Party:** one main character and two support characters. Any character may occupy either
+  kind of slot, and each character keeps two completely separate talent sets — the set in use
+  follows the slot, and a character levels its main-role talents only while it is the main
+  (R-01, R-02, R-40).
+* **Talent structure:** per set, exactly 4 core talents (no level system: value 0/1, and every
+  member must select exactly 2 of the 4 — a third is impossible and the choice cannot be skipped)
+  plus 9 sub talents at integer levels 0–6, where 0 means not owned (R-03..R-05, R-17).
+* **How the game grants levels:** each pick offers 3 randomly chosen talents of that member and
+  the player takes one; the main member's talents appear in the selection pool more often, and
+  the number of picks available varies from build to build (~40–65+). That is why the level
+  budget and the per-member totals are *user inputs* (R-07, R-13, R-14), why the pool bias is
+  left entirely to the user (Q-3), and why simulating the random pulls is a non-goal (§2).
+* **Damage values:** produced by the damage formula documented in
+  [DamageCalculationParameters.md](DamageCalculationParameters.md) and implemented by
+  [stella_sora_damage.py](stella_sora_damage.py), which the tool vendors as its kernel (R-24).
+  The formula's inputs come from base stats, skill values and talent modifiers; individual
+  talent values may be gated on conditions (cooldown window, "after skill activation",
+  "target has sigil") — the convention for those is §3 R-39.
+* **Scaling quirks:** some characters compute damage from HP or other base stats, so the full
+  character record must reach the objective module (R-37).
+
 ## 2. Scope
 
 **In scope**
@@ -31,6 +59,9 @@ and by the objective-function plugin.
 - Skill timing data (active-skill **cooldowns**, auto-skill **loop time**) and **per-damage-source**
   types/ timings, so a generic calculator can approximate DPS (R-30..R-32).
 - Pluggable objective functions (built-in + user-supplied files/modules, no rebuild).
+- Enemy/scenario profile as user input (`scenario:` block, `--target-opts` plugin knobs).
+- A tool-provided data context handed to the plugin (party characters, resolved talent
+  levels per talent, aggregated buffers, scenario) — R-37/R-38.
 - Constraint handling: core-talent selection, per-character totals, per-talent bounds.
 - Machine-readable YAML result + human-readable console report.
 
@@ -40,10 +71,15 @@ and by the objective-function plugin.
 - Gear, sigils, duos, or anything other than the damage-formula parameters.
 - A GUI/TUI, save-file import, or live game scraping.
 - Accurate DPS modelling for every character: correctness of the objective is the
-  plugin author's responsibility (see R-14/R-15).
+  plugin author's responsibility (see R-21/R-33/R-34).
 - A shared rotation/timeline model: cooldowns and loop times are *data*, and how they
   turn into DPS is the target function's/plugin's decision (R-31); 0.1.0 has no timeline
-  simulation.
+  simulation and ships no timeline helper (only the data of R-30/R-38).
+- A condition-expression language in the data format: condition-gated talent values
+  (cooldown window, "after skill activation", "target has sigil") are a documented
+  convention resolved by the plugin (R-39); sigil/break state itself is not modelled.
+- An energy/charge/activation model: how often an ultimate is available is not simulated, so
+  ult portions enter the objective per hit or at a plugin-assumed rate (see §6.2).
 
 ## 3. Streamlined requirements
 
@@ -89,7 +125,7 @@ tests, and `CHANGES.md` entries.
 | R-18 | Character definitions are YAML files keyed by character name (`stats`, `auto_skill`, `main_skill`, `sub_skill`, `ult_skill`, `talents_main`, `talents_sub`). |
 | R-19 | A talent entry maps parameter key → `{level: value}`. Only levels that change need listing; **intermediate levels are interpolated evenly** between the two declared anchors (e.g. keys 1 and 6 imply a constant step for 2–5; level 0 contributes nothing). |
 | R-20 | Talent parameter keys are free-form strings; they are *summed* across all owned talents at their chosen levels, including character-specific keys unknown to the damage kernel. |
-| R-21 | An objective plugin is a callable `f(x, **party_kwargs) -> float`. `x` is the SciPy-style flat level vector; character data, party composition, and scenario constants are bound by the plugin author (closure/partial), not by the solver. |
+| R-21 | An objective plugin is a callable `f(x, ctx) -> float`. `x` is the SciPy-style flat level vector (R-08); `ctx` is the **tool-provided** data context of R-37 (party characters with full stats/skills/talents, resolved levels and buffers, scenario). The plugin author may still bind extra constants by closure/partial, but must not have to load character data itself. |
 | R-22 | Plugin references accept three forms: built-in short name (`auto_attack`), dotted module path (`pkg.mod:func`), and file path (`./plugins/my_calc.py:func`). Loading must work at runtime against a `pipx`/`uv tool install`ed copy — no package rebuild. |
 | R-23 | A built-in default plugin must exist that computes **auto-attack skill damage** from the damage kernel; it is the reference implementation and the target of the doc examples. |
 | R-24 | The damage kernel (DEF/RES/PEN/VUL/erAmend/defAmend, crit expectation, `is_dot`) is shared library code, unit-converted from YAML conventions via `skill_percent_to_amend`. |
@@ -98,11 +134,23 @@ tests, and `CHANGES.md` entries.
 
 | ID | Requirement |
 | --- | --- |
-| R-30 | Main and sub **active skills** (`main_skill`, `sub_skill`) carry a **cooldown** `cd` in seconds, taken from the game's character spec. The **auto skill** of the character in the `main` slot carries a **loop time** `loop_time` in seconds, measured from gameplay/video analysis of one full auto-attack cycle. |
+| R-30 | Main and sub **active skills** (`main_skill`, `sub_skill`) carry a **cooldown** `cd` in seconds, taken from the game's character spec. Every authored character's **auto skill** carries a **loop time** `loop_time` in seconds, measured from gameplay/video analysis of one full auto-attack cycle — authored for all characters, not only the one in the `main` slot, because some characters act from the sub slot with their auto skill (R-40); built-in DPS targets use the main slot's value. |
 | R-31 | Timing values are informational to the tool: it type/range-checks them and passes them through. Which period a plugin uses, and how many times a skill fires inside a window, is entirely the target function's/plugin's decision — a plugin may follow the "use immediately when CD is up" default or model its own rotation. |
 | R-32 | A skill may declare **multiple damage sources** (e.g. a base elem hit plus a separate mark portion). Each source carries its own damage type (element and/or slot class), may carry its own `cd`/`loop_time`, and may set `dot` (→ kernel `is_dot`), so a generic calculator evaluates each source as a separate `calculate_damage` call with only that source's buffers and sums the results. |
 | R-33 | The damage kernel is **apply-everything**: `calculate_damage` consumes every argument it is handed and applies no policy of its own about which keys belong to which skill or damage source. Choosing the argument set — including dropping irrelevant talent keys — is the target function's/plugin's responsibility. |
 | R-34 | Buffs are applied **before** the kernel call, by the target function/plugin: it folds the relevant Atk buffs and any other status buffs into the main party member's effective status (and the relevant enemy-side debuffs into the enemy parameters) and hands those numbers to the kernel. The tool supplies only raw `stats` and the aggregated key map (R-20); it never pre-buffs anything. |
+
+### Plugin context, scenario & key vocabulary
+
+| ID | Requirement |
+| --- | --- |
+| R-35 | A **documented buffer-key vocabulary** maps talent parameter keys to damage-kernel arguments: `Atk_absMod` → additive Atk, `Atk_multiplier` → multiplicative Atk buff, `critDmgMod` → `critDmg`, `crit_rateMod` → `crit_rate`, `skillIntensity`, `slot{AutoAttack,Skill,Ultimate,Other,Mark,Projectile,Minion}Dmg` → `slotDmg` of that source, `slot{…}CritDmg` → `slotCritDmg`, `elem{Aqua,Ignis,Terra,Ventus,Lux,Umbra}Dmg` → `elementDmg`, `DEF_rate_mod`/`RES_rate_mod` → enemy debuffs. The vocabulary is a **convention**, never enforced (R-20 keeps keys free-form), but it is the single source of truth in `PLUGINS.md` and the built-ins — because R-33 means the kernel will not map keys for the plugin. Keys outside the vocabulary are character-specific. |
+| R-36 | The enemy/scenario profile is user input: a `scenario:` block in the run config with `DEF`, `RES`, an optional per-element `res_table` (weakness/neutral/resistance values), `PEN`, `VUL`, `DEF_Ignore`, `DEF_Penetrate`, `enemyBreakStatus`, `resilienceBreakDmg`, merged over the kernel's defaults and handed to the plugin as `ctx["scenario"]`. Free-form `target_opts:` (CLI `--target-opts KEY=VAL`) carries plugin-specific constants into `ctx["target_opts"]`. `IGNORING`, `generalDmg`, `dmgPlus`, `finalDmg`, … stay kernel-only neutral defaults because they are not defined in game. Exactly **one** scenario per invocation in 0.1.0 (Q-4 defers multi-scenario). |
+| R-37 | The tool provides the **data context** to the plugin: `f(x, ctx)`. `ctx` carries, per party slot (`main`, `sub1`, `sub2`), the full character object (`stats` incl. `HP`/`DEF` for HP-scaled mechanics, all skill blocks with `cd`/`loop_time`/`sources`, the talent set in use), the merged scenario, plugin target options, and the buffer maps of R-38. All three members' detail must be present so plugins can model support-side contributions and sub-slot auto-skill cases (R-40). |
+| R-38 | Per evaluated candidate the tool builds `ctx` with the level resolution already done: `ctx["members"][slot].talent_levels` (name-keyed, in R-08 order), `ctx["members"][slot].talent_params` (**per-talent** breakdown `talent → {key: value at that level}` using the R-19 interpolation tables), and `ctx["aggregated"]` (the summed map, identical to `aggregate_params(x)`). Helper `resolve_talent_params(x, ctx)` returns the same data. The **per-talent breakdown is mandatory**, not just the sum: talent activation is gated on skill activation, so timeline-style plugins (simple approximation or real simulation, owned by the plugin per R-31) must attribute a buff to the talent that granted it. No YAML parsing per evaluation (§5 invariant). |
+| R-39 | Talent values may be **condition-gated** in the game (cooldown window, "after skill activation", "target has sigil"). 0.1.0 has no condition-expression language in the data format: the *meaning* of an aggregated value — per-application amount, uptime fraction, or plain count — is a documented convention declared in the character's/plugin's docs and applied by the plugin (e.g. a value multiplied by an assumed uptime). Sigil and break state are not modelled by the tool. |
+| R-40 | Role semantics of the existing skill keys (no extra keys): the `main` slot uses `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` use `sub_skill` + `ult_skill` and **never `main_skill`**. The special case is `auto_skill`: some characters act from the sub slot with their auto skill (currently the only such role exception), which is plugin-side logic; hence `loop_time` is authored for every character's `auto_skill` (R-30). |
+| R-41 | A party must consist of three **distinct** characters; the same character name in two slots is a loader error (exit 2). |
 
 ### CLI / IO
 
@@ -112,7 +160,7 @@ tests, and `CHANGES.md` entries.
 | R-26 | Required inputs: party, objective plugin, `total_level`. Optional: restrictions, character data sources, output path, solver knobs. |
 | R-27 | Output is YAML (talent list per character with chosen levels) **plus** the objective value returned by the plugin. |
 | R-28 | `-v/--verbose` (count) additionally prints the aggregated parameter dictionary and the objective value per evaluated candidate. |
-| R-29 | Errors are non-zero exits with a message on stderr (exit-code table in §8). |
+| R-29 | Errors are non-zero exits with a message on stderr (exit-code table in §7). |
 
 ## 4. Data schemas
 
@@ -126,7 +174,7 @@ One file per character (or several characters per file, top-level key = characte
 | `auto_skill` / `main_skill` / `sub_skill` / `ult_skill` | map (single source) **or** list (multi-source) | Either a damage-class map (below) plus skill-level timing, or — when parts of the skill must be computed separately — a `sources:` list (R-32). Both forms are accepted; when `sources:` is present it is authoritative. |
 | `damage` | map of damage-class → map | Damage classes are `elem{Aqua,Ignis,Terra,Ventus,Lux,Umbra}Dmg`, `slot{AutoAttack,Skill,Ultimate,Other,Mark,Projectile,Minion}Dmg`, plus free-form character-specific keys. Values are `{skillPercentAmend: …}` or scenario-specific numbers. |
 | `cd` | number (seconds) | Active-skill cooldown from the game's character spec (R-30); validated as a positive number but never interpreted by the tool (R-31). |
-| `loop_time` | number (seconds) | Auto skill on the **main** character: measured duration of one full auto-attack cycle (video analysis) (R-30). |
+| `loop_time` | number (seconds) | Auto skill: measured duration of one full auto-attack cycle (video analysis), **authored for every character** — some characters act from the sub slot with their auto skill (R-30, R-40); built-in DPS targets read only the `main` slot's value. |
 | `sources[]` | list of maps | One entry per damage source: optional `name` label, a `damage` map in the same damage-class notation, and that source's own timing (`cd` or `loop_time`; defaults to the skill-level value when omitted) plus optional `dot: true` (→ `is_dot`). Separate sources are calculated separately with only their own buffers (R-32, §6). |
 | `skillPercentAmend` | number | Percent-of-Atk in **×100 percent** units, i.e. `11.30` ⇒ 1130 % of Atk. Kernel conversion: `skill_percent_to_amend(v * 100)`. |
 | `talents_main` / `talents_sub` | list | Index 0–3 = core (`core_talent: true`), index 4–12 = sub. Order defines the variable order of that character (R-08, R-17). |
@@ -170,9 +218,21 @@ Abbreviated example (documentation sample, not shipped source):
 
 Validation rules the loader must enforce: 4 core + 9 sub per set, unique `talent_name`,
 level keys ⊂ 0–6 (core ⊂ 0–1), numeric values, unknown-key tolerance (never fatal), and
-`cd`/`loop_time` present as numbers > 0 when given (absent is legal — plugins then fall
-back to per-hit damage). A `sources[]` entry must have a non-empty `damage` map and a
-label-unique `name` when named (R-30, R-32).
+`cd`/`loop_time` present as numbers > 0 when given (absent is legal — DPS-minded plugins
+then fall back to per-hit damage and say so with `-v`). A `sources[]` entry must have a
+non-empty `damage` map and a label-unique `name` when named (R-30, R-32).
+
+Role semantics of the four skill keys are fixed data conventions, **not extra keys** (R-40):
+the `main` slot may use `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` may use
+`sub_skill` + `ult_skill` and their own `auto_skill` (never `main_skill`). Which of them
+actually contributes to the objective — including sub-slot auto-skill cases and characters
+that act from support — is the plugin's decision (R-37 requires the full data of all three
+members to be available to it). The loader warns (never fails) when a character in a support
+slot has no `sub_skill`.
+
+Loader normalization (R-32): the shorthand `damage:` map is equivalent to a **single-element**
+`sources[]` list inheriting the skill-level `cd`/`loop_time`, so plugins always see one source
+list shape and never special-case the two spellings.
 
 ### 4.2 Party / run config (`ssoptim.yml`, `--config`)
 
@@ -185,6 +245,18 @@ data_dirs: [ "./characters" ]      # searched before the bundled set
 target: auto_attack                # plugin spec (R-22)
 total_level: 65
 total_level_mode: exact            # exact | at_most
+scenario:                          # enemy profile (R-36); merged over kernel defaults
+  DEF: 500
+  RES: 750
+  res_table: { Aqua: 250, Lux: 250, default: 750 }  # optional per-element RES
+  PEN: 0
+  VUL: 0
+  DEF_Ignore: 0
+  DEF_Penetrate: 0
+  enemyBreakStatus: false
+  resilienceBreakDmg: 1.5
+target_opts:                       # free-form plugin-specific constants (R-36)
+  uptime_fraction: 0.6             # e.g. how often a condition-gated buff is assumed up
 restrictions:
   main:
     min: 30                        # character-level total lower bound
@@ -202,6 +274,21 @@ solver:
   runs: 3                          # restarts, keep best feasible
   polish: true
 ```
+
+Notes:
+
+* `scenario:` is the single enemy profile of a 0.1.0 run (R-36): unspecified keys keep the
+  damage-kernel defaults, and a per-element `res_table` (keys in the same element notation as
+  `elem…Dmg`, plus a `default`) lets a plugin choose the RES for a source's element. Keys that
+  are not defined in game (`IGNORING`, `generalDmg`, `generalDmgTaken`, `dmgPlus`,
+  `dmgPlusTaken`, `finalDmg`, `finalDmgPlus`, `perkIntensity`, `talentGroup*`, `skillAbsAmend`)
+  are **not** exposed as scenario input and stay at their neutral kernel defaults.
+* `target_opts:` is free-form and plugin-specific; the CLI form `--target-opts KEY=VAL` merges
+  over it (precedence: CLI > config). It arrives in `ctx["target_opts"]` (R-37) and is the
+  documented place where a plugin declares the semantics of condition-gated values (R-39),
+  e.g. an assumed uptime fraction.
+* The three party characters must be **distinct** (R-41); a repeated character name is an
+  input error (exit 2).
 
 ### 4.3 Result file (`--out`, default stdout)
 
@@ -222,7 +309,8 @@ party:
 ```
 
 `--show-params` (implied by `-vv`) appends `aggregated_params:` — the summed key/value map
-the plugin received — so plugin authors can diff their assumptions against reality.
+the plugin received — plus the effective `scenario:` values, so plugin authors can diff both
+their talent-buffer assumptions and their enemy-profile assumptions against reality (R-36).
 
 ## 5. Optimization model
 
@@ -242,6 +330,7 @@ Constraints, all generated (never hand-written), integer coefficients:
 | R-14 | `min_char <= Σ char <= max_char` |
 | R-15 | expressed as variable bounds |
 | R-16 | core pinning via `min: 1` on the pinned talents |
+| R-41 | party distinctness, checked at load time (no levels involved) |
 
 Solver driver:
 
@@ -252,7 +341,8 @@ Solver driver:
   this doubles as a testable reference solver and as the safety net for SciPy's constrained-integrality caveats.
 - Objective call must be cheap (no YAML parsing per evaluation): the plugin receives
   pre-resolved level→value tables (R-19 interpolation is precomputed once, per talent,
-  into a list indexed by level).
+  into a list indexed by level) through the `ctx` of R-37/R-38, already resolved for the
+  current `x` — the plugin never maps `x` positions to talents itself.
 - Maximization: driver maximizes directly; plugins return larger = better (stated
   explicitly in `PLUGINS.md`, R-21/R-27).
 
@@ -260,8 +350,8 @@ Solver driver:
 
 ```python
 # plugin signature (author's side; shown for contract definition only)
-def objective(x) -> float:            # x: flat integer level vector, order per R-08
-    ...
+def objective(x, ctx) -> float:      # x: flat integer level vector, order per R-08
+    ...                              # ctx: tool-built data context for this x (R-37/R-38)
 ```
 
 Resolution rules (`plugins.py`):
@@ -276,14 +366,22 @@ Built-ins are importable submodules so the built-in set can grow without touchin
 `pyproject.toml`; user plugins live outside the package (repo `plugins/` dir is the
 convention) and are loaded by path — satisfying R-22 for a `pipx`-installed tool.
 
-Shared helpers every plugin should use: 
+Shared helpers every plugin should use (all read the tool-built `ctx`; nothing re-parses YAML):
 
-- `aggregate_params(x)` → `{key: Σ value}` over all owned talents at the given levels,
-  including character-specific keys (R-20).
+- `resolve_talent_params(x, ctx)` → the level-resolved view of the current candidate:
+  per member slot, name-keyed levels plus the **per-talent** `talent → {key: value}`
+  breakdown (R-38) — the breakdown is what timeline-style plugins need, to attribute a
+  buff to the talent that granted it (the summed map alone cannot say that).
+- `aggregate_params(x)` → `{key: Σ value}` over all owned talents at the chosen levels,
+  including character-specific keys (R-20); identical to `ctx["aggregated"]`.
 - `resolve_talent_value(talent, level)` → interpolated value (R-19).
-- `damage.calculate_damage(...)` (R-24) for the damage-kernel terms; plugins own
-  skill selection, multi-hit counts, cooldown windows, and any character-specific
-  simulation (e.g. turning a character-specific key into per-interval applications).
+- `ctx["members"][slot]` for `main`, `sub1`, `sub2` → the full character object: `stats`
+  (incl. `HP`/`DEF` for HP-scaled mechanics), skill blocks with `cd`/`loop_time`/`sources`,
+  and the talent set in use (R-37; role availability per R-40).
+- `ctx["scenario"]` / `ctx["target_opts"]` → merged enemy profile and plugin knobs (R-36).
+- `damage.calculate_damage(...)` (R-24) for the damage-kernel terms; plugins own skill
+  selection, multi-hit counts, cooldown windows, and any character-specific simulation
+  (e.g. turning a character-specific key into per-interval applications — R-39 convention).
 
 ### 6.1 Kernel / buffer ownership (who applies what)
 
@@ -304,6 +402,44 @@ The split of responsibility is fixed and must be mirrored in `PLUGINS.md`:
   different argument set each time, then combine the numbers (sum, weighted mix, per-period
   rate).
 
+The documented key convention (R-35) — the single source of truth in `PLUGINS.md`, not
+enforced by the loader:
+
+| Talent key (aggregated map) | Kernel argument | Applied to |
+| --- | --- | --- |
+| `Atk_absMod` | `Atk` (+) | attacker status |
+| `Atk_multiplier` | `Atk` (× (1+v)) | attacker status |
+| `skillIntensity` | `skillIntensity` | source-specific multiplier |
+| `slot{X}Dmg`, `elem{E}Dmg` | `slotDmg`, `elementDmg` | only sources of that slot/element |
+| `slot{X}CritDmg`, `critDmgMod`, `crit_rateMod` | `slotCritDmg`, `critDmg`, `crit_rate` | crit terms of that source |
+| `DEF_rate_mod`, `RES_rate_mod` | `DEF`, `RES` (−) | enemy parameters (party-side debuffs) |
+| `PEN`, `VUL` | `PEN`, `VUL` | scenario + party-side debuffs |
+| anything else | — | character-specific: plugin-interpreted (R-20, R-39) |
+
+Worked shape of the plugin-side buffering and key selection (R-33/R-34):
+
+```python
+def objective(x, ctx) -> float:
+    m, p, sc = ctx["members"]["main"], ctx["aggregated"], ctx["scenario"]
+    atk = m.stats["Atk"] * (1 + p.get("Atk_multiplier", 0.0)) + p.get("Atk_absMod", 0.0)
+    dps = 0.0
+    for skill in (m.auto_skill, m.main_skill):                # R-40 role availability
+        for s in skill["sources"]:                            # per-source call (R-32)
+            dmg = calculate_damage(
+                Atk=atk,                                      # buffered status (R-34)
+                **s_buffers(s, p, sc),                        # only this source's keys (R-33)
+                DEF=sc["DEF"], RES=source_res(sc, s),         # per-element RES (R-36)
+            )
+            period = s.get("loop_time") or s.get("cd") or skill.get("loop_time") or skill.get("cd")
+            dps += dmg / period if period else dmg            # §6.2 rate; per-hit if untimed
+    return dps
+```
+
+`s_buffers`/`source_res` are the plugin's own helpers: they choose the aggregated keys that
+belong to the source (element/slot/crit class, gated-value convention) and read the right
+`ctx["scenario"]` entry — exactly the responsibility split of R-33/R-35/R-36, and the reason
+the kernel itself never inspects the talent map.
+
 ### 6.2 Generic DPS shape (0.1.0 approximation)
 
 No timeline, no buff durations: a source is assumed available at its own period, which is
@@ -318,8 +454,11 @@ dps = Σ over sources of the main character:  damage(source) / period(source)
 ```
 
 Alternative plugins may instead report raw per-hit damage (`auto_attack`, the 0.1.0 default)
-or a rotation-weighted mix; the period arithmetic is theirs (R-31). The 0.2.0 target
-generalizes this shape (still without a real timeline) — see §12 Q-4.
+or a rotation-weighted mix; the period arithmetic is theirs (R-31). A source carrying neither
+`loop_time` nor `cd` is per-hit only — the built-in DPS shape skips it and says so with `-v`
+(this covers ultimate portions and burst hits: the tool has no energy/charge/activation model,
+which is an explicit non-goal). The 0.2.0 target generalizes this shape (still without a real
+timeline) — see §12 Q-2/Q-4.
 
 ### 6.3 Sample plugin plan
 
@@ -334,9 +473,14 @@ as follows, so that timing data is actually exercised end-to-end:
    each damage source calculated separately with only its own buffers (e.g. the mark
    portion uses `slotMarkDmg`, not `slotSkillDmg`), divided by its period and summed;
    demonstrates the plugin-side Atk/status buffering of R-34 and the "CD up ⇒ used again"
-   default of R-31. No timeline, no buff durations.
-3. Later (0.2.0): promote `simple_dps` to a built-in `dps` target and extend it with
-   rotation overrides and more general CD/loop accounting (§12 Q-4, M8+).
+   default of R-31, reads the enemy profile from `ctx["scenario"]` (R-36), and uses the
+   per-talent breakdown of R-38 when attributing a buff. No timeline, no buff durations.
+3. 0.1.0 ships **data only** for timeline-style objectives: `ctx` carries levels, per-talent
+   buffers and timing (R-30/R-37/R-38), but no shared timeline helper. Plugins that want an
+   approximation build their own.
+4. Later (0.2.0): promote `simple_dps` to a built-in `dps` target and extend it with
+   rotation overrides, more general CD/loop accounting, and shared timeline helpers
+   (§12 Q-2/Q-4, M8+).
 
 ## 7. CLI surface
 
@@ -345,7 +489,7 @@ ssoptim [-h] [--version] COMMAND ...
 ssoptim optimize [-c CFG] [-m MAIN] [-s SUB1 ...] [-t N] [-f TARGET]
                  [--char DIR|FILE ...] [--restrictions FILE]
                  [--total-level-mode exact|at_most] [-o OUT.yml]
-                 [--target-opts KEY=VAL ...] [--show-params]
+                 [--scenario KEY=VAL ...] [--target-opts KEY=VAL ...] [--show-params]
                  [--maxiter N] [--popsize N] [--runs N] [--seed N] [--no-polish]
                  [-v ...]
 ```
@@ -360,6 +504,8 @@ ssoptim optimize [-c CFG] [-m MAIN] [-s SUB1 ...] [-t N] [-f TARGET]
 | `--char PATH` | `data_dirs` | repeatable file or dir; searched before bundled data |
 | `--restrictions FILE` | `restrictions` | separate restrictions YAML (merges over config) |
 | `-o, --out FILE` | — | default: stdout YAML only |
+| `--scenario KEY=VAL` | `scenario.*` | repeatable; per-key override of the enemy profile (R-36) |
+| `--target-opts KEY=VAL` | `target_opts` | repeatable; free-form plugin-specific constants, delivered as `ctx["target_opts"]` (R-36, R-37) |
 | `--show-params` | — | dump aggregated params (same as `-vv`) |
 | `--maxiter/--popsize/--runs/--seed/--no-polish` | `solver.*` | solver knobs |
 | `-v, --verbose` | — | count: `-v` warnings, `-vv` per-evaluation objective + params |
@@ -375,7 +521,7 @@ Exit codes:
 | Code | Meaning |
 | --- | --- |
 | 0 | feasible optimum written |
-| 2 | usage/config error (missing party, missing budget, unparseable YAML) |
+| 2 | usage/config error (missing party, missing budget, unparseable YAML, duplicate party characters R-41) |
 | 3 | infeasible constraint set (e.g. budget < Σ mins, or mins > maxes) |
 | 4 | plugin load failure / plugin raised |
 | 5 | solver found no feasible point after `runs` restarts |
@@ -393,7 +539,6 @@ ssoptim/                     # repo root = project "SSOptim"
 ├── CHANGES.md               # existing; semver2.0 entries, change-point markers
 ├── DESIGN.md                # this document
 ├── DamageCalculationParameters.md   # existing reference doc (kept)
-├── DesignGoals.md                   # intent doc (kept)
 ├── LICENSE                          # existing (MIT, aoi mizma)
 ├── Makefile                         # click-cutter targets (build/venv/package/publish/clean)
 ├── README.md                        # user-facing: usage, config, plugins, install, dev
@@ -412,15 +557,15 @@ ssoptim/                     # repo root = project "SSOptim"
     └── ssoptim/         # implementation subpackage (cli_name = ssoptim)
         ├── __init__.py
         ├── ssoptim.py   # cmd(kwargs): orchestration (§9 step list), no click, no IO formatting
-        ├── data.py      # YAML loading, schema validation, character/party model objects, data-dir resolution
-        ├── talent.py    # sparse {level: value} → interpolated level→value tables (R-19), param aggregation (R-20)
-        ├── damage.py    # damage kernel, vendored from stella_sora_damage.py (R-24)
-        ├── plugins.py   # plugin spec resolution + registry (R-22)
+        ├── data.py      # YAML loading, schema validation (R-30/R-41), scenario block (R-36), character/party model objects, data-dir resolution
+        ├── talent.py    # sparse {level: value} → interpolated level→value tables (R-19), per-talent breakdown + param aggregation (R-20, R-38)
+        ├── damage.py    # damage kernel, vendored from stella_sora_damage.py (R-24); apply-everything (R-33)
+        ├── plugins.py   # plugin spec resolution + registry (R-22), ctx builder for the current x (R-37, R-38)
         ├── targets/     # built-in objective functions
         │   ├── __init__.py   # REGISTRY = {"auto_attack": ...}
         │   └── auto_attack.py# default objective (R-23)
-        ├── constraints.py # bounds + LinearConstraint builder from data/config (R-04..R-16)
-        ├── optimize.py    # differential_evolution driver, restarts, verify/repair fallback (R-08..R-12)
+        ├── constraints.py # bounds + LinearConstraint builder from data/config (R-04..R-16, R-41 checked at load)
+        ├── optimize.py    # differential_evolution driver, restarts, per-candidate ctx, verify/repair fallback (R-08..R-12, R-38)
         └── report.py      # result YAML + console rendering (R-27..R-29)
 ```
 
@@ -450,14 +595,14 @@ Each milestone is independently testable and lands with docs/changelog updates.
 | M | Deliverable | Acceptance criteria |
 | --- | --- | --- |
 | M0 | click-cutter scaffold: `pyproject.toml`, `Makefile`, `tasks.py`, package dirs, `--version`/`--help` work, editable install via `uv` | `ssoptim --version` prints `0.0.0+dev`/`0.1.0`; wheel builds with `uv build` |
-| M1 | `data.py` + `talent.py`: YAML load, schema validation (incl. `cd`/`loop_time` and multi-`sources` skills, R-30/R-32), interpolation tables | loader round-trips §4.1 sample; interpolation of 1↔6 keys matches the even-step rule; invalid data fails with R-29 exit 2 |
-| M2 | `damage.py` vendoring of `stella_sora_damage.py`; unit conversion helper | vendored file reproduces the gist sanity table already printed by the scratch file |
-| M3 | `targets/auto_attack.py` + `plugins.py` aggregation path + `plugins/simple_dps.py` DPS sample (§6.3) | default objective on a fixed 3-char fixture equals a hand-computed value from §4.1 constants; `simple_dps` reproduces a hand-computed main-character DPS from §4.1's `loop_time`/`cd` and its two sources (per-source buffers, R-32/R-34) |
-| M4 | `constraints.py` bounds/constraint generation | generated matrices verified by direct check of R-04, R-13, R-14, R-15 on fixtures; infeasible inputs flagged (exit 3) |
+| M1 | `data.py` + `talent.py`: YAML load, schema validation (incl. `cd`/`loop_time`, multi-`sources` skills, distinct-party rule R-41), scenario block (R-36), interpolation tables, per-talent breakdown (R-38) | loader round-trips §4.1 sample; interpolation of 1↔6 keys matches the even-step rule; `scenario:` merges over kernel defaults; a duplicate party and invalid data both fail with R-29 exit 2 |
+| M2 | `damage.py` vendoring of `stella_sora_damage.py`; unit conversion helper | vendored file reproduces the sanity table the scratch file prints (parameter names documented in [DamageCalculationParameters.md](DamageCalculationParameters.md)) |
+| M3 | `targets/auto_attack.py` + `plugins.py` ctx builder/aggregation path + `plugins/simple_dps.py` DPS sample (§6.3) | default objective on a fixed 3-char fixture equals a hand-computed value from §4.1 constants; `simple_dps` reproduces a hand-computed main-character DPS from §4.1's `loop_time`/`cd` and its two sources (per-source buffers, R-32/R-34); both plugins take `(x, ctx)` and read levels/buffers through the helpers, never by indexing `x` (R-37, R-38) |
+| M4 | `constraints.py` bounds/constraint generation | generated matrices verified by direct check of R-04, R-13, R-14, R-15 on fixtures; infeasible inputs flagged (exit 3); duplicate party flagged (exit 2, R-41) |
 | M5 | `optimize.py`: `differential_evolution` + verify/repair | on the fixture, the optimum matches the brute-force enumeration of the reduced (2 chars, 4 sub levels) space; all constraints hold |
-| M6 | `cli.py` + `report.py`: options, precedence, YAML out, exit codes | README's documented invocation runs end-to-end and writes §4.3 YAML; precedence test: CLI overrides config |
+| M6 | `cli.py` + `report.py`: options (incl. `--scenario`, `--target-opts`), precedence, YAML out, exit codes | README's documented invocation runs end-to-end and writes §4.3 YAML; precedence tests: CLI overrides config, `--scenario DEF=…` overrides the `scenario:` block; `--show-params` prints the aggregated map and the effective scenario (R-36) |
 | M7 | Packaging/CLI polish, built-in char data set, `plugins/` examples, pytest suite green, `tasks.py`/Makefile wired | `uv build` + `pipx install ssoptim` yields a working `ssoptim optimize …` with `--config` defaults |
-| M9 | `PLUGINS.md`: detailed plugin development guide (separate document) — objective contract and "bigger is better" convention (R-21/Q-1), flat `x` vector layout (R-08), aggregation + interpolation helpers (R-19/R-20), **kernel/buffer ownership** (R-33/R-34: the kernel applies everything it is given; the plugin selects keys and applies Atk/status buffs first), skill timing (R-30/R-31), multi-source skills (R-32), the §6.2 DPS recipe, worked `auto_attack` and `simple_dps` walkthroughs, plugin exception → exit 4 behaviour, solver-knob tuning | every code snippet in `PLUGINS.md` runs verbatim against the M3 fixture party; `ssoptim optimize -f ./plugins/simple_dps.py:objective` matches the documented value; README §"Objective plugins" links to it |
+| M9 | `PLUGINS.md`: detailed plugin development guide (separate document) — objective contract and "bigger is better" convention (R-21/Q-1), flat `x` vector layout (R-08), the `ctx` contract and level-resolution helpers (R-37/R-38, incl. the per-talent breakdown), the buffer-key vocabulary (R-35) and gated-value conventions (R-39), scenario inputs (R-36), **kernel/buffer ownership** (R-33/R-34: the kernel applies everything it is given; the plugin selects keys and applies Atk/status buffs first), skill timing (R-30/R-31), role availability (R-40), multi-source skills (R-32), the §6.2 DPS recipe with a hand-rolled timeline approximation, worked `auto_attack` and `simple_dps` walkthroughs, plugin exception → exit 4 behaviour, solver-knob tuning | every code snippet in `PLUGINS.md` runs verbatim against the M3 fixture party; `ssoptim optimize -f ./plugins/simple_dps.py:objective` matches the documented value; README §"Objective plugins" links to it |
 | M8+ | Extra built-in targets (single skill, ult, cooldown-aware `dps` promoted from `simple_dps`, §12 Q-4 generalization), planned sub-commands (`chars`, `plugins`, `eval`) | each new target documented in `PLUGINS.md` §"Built-in targets" and registered in `targets/`; `PLUGINS.md` extended in place |
 
 Testing strategy: pure functions at `data`/`talent`/`constraints` boundaries (no scipy needed),
@@ -475,6 +620,8 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
 | Timing data missing, guessed, or contested (no published CD values; loop time depends on animation/movement) | `cd`/`loop_time` are optional and authored per character from game spec or video analysis (R-30); the loader warns (`-v`) when a DPS-minded target needs them and they are absent, falling back to per-hit damage; `PLUGINS.md` states that timing numbers are the data author's responsibility and records the measurement method |
 | Plugin applies the wrong key set or forgets to buffer Atk/status (R-33/R-34 are on the plugin, not the kernel) | `--show-params`/`-vv` prints the aggregated map and the per-evaluation objective; `PLUGINS.md` gives a per-source argument table and the worked `simple_dps` example as the copy/modify starting point |
 | Data set incompleteness (only some characters authored) | data lives in `characters/` and `ssoptim/characters/`; tool validates and names missing characters explicitly; README "Known Issues" lists the shipped set |
+| Plugin needs per-talent attribution but only gets the summed map (or re-maps `x` positions by hand) | `ctx` carries the per-talent `talent → {key: value}` breakdown resolved for the current `x` (R-38); `resolve_talent_params(x, ctx)` is the documented entry point |
+| Two plugins disagree on what an unknown key means (`Atk_multiplier` additive vs multiplicative; gated value = amount vs uptime fraction) | one documented vocabulary in `PLUGINS.md` (R-35) plus `target_opts:` for the gated-value convention (R-39); `--show-params` prints the aggregated map so mismatches are visible; unknown keys are never silently applied by the kernel (R-33) |
 
 ## 11. Decisions (with rationale)
 
@@ -485,7 +632,9 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
 3. **Exact-sum budget by default** with `at_most` opt-in: matches the game's "levels
    available" mental model while permitting non-monotone objectives.
 4. **Keyed restrictions by talent name** (positional also accepted): name keys survive
-   data-file reordering; positional keys keep compatibility with the DesignGoals sketch.
+   data-file reordering; the positional form stays available for hand-written restriction
+   lists copied in the character's declaration order (§4.1), which is how players transcribe
+   talent order from the game.
 5. **Plugin loading by spec string, three forms** (R-22): the original design's open
    question "some module name?" is resolved; file-path form is what makes `pipx`-installed
    extension possible without rebuild.
@@ -516,12 +665,38 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
     buffer ownership, timing data, DPS shape, worked samples) is far more detailed than
     README's Usage section — which is the semver-pinned interface surface — so it lives in its
     own document that README links to and that grows with each new built-in target.
+14. **Typed `scenario:` block, not plugin-only enemy constants** (R-36): DEF/RES/PEN/VUL/break
+    are part of the damage formula and are identical for every plugin, so they belong to the
+    run config and are diffable via `--show-params`; only genuinely plugin-specific knobs go to
+    `target_opts:`. Game-undefined formula terms (`IGNORING`, `generalDmg`, `dmgPlus`,
+    `finalDmg`, …) stay kernel-only neutral defaults so users cannot set meaningless values.
+15. **Tool-provided `ctx`, not a plugin-side loader** (R-37): the plugin contract must give the
+    plugin character/party data — some characters scale damage off HP or other base stats — and
+    building it once per candidate inside the tool keeps that data free of re-parsing while still
+    letting plugins bind their own extra constants by closure.
+16. **Per-talent breakdown alongside the summed map** (R-38): talent activation is gated on
+    skill activation, so a timeline-style plugin must know *which* talent granted a buff. The
+    summed map of R-20 is convenient but lossy; `ctx` therefore also carries
+    `talent → {key: value}` per member, resolved for the current `x`. Plugins never map `x`
+    positions to talents themselves.
+17. **Role rules kept as prose over the existing four skill keys** (R-40): the game's role
+    availability (main uses auto/main/ult; support uses sub/ult and, for a few characters, its
+    **auto skill** — never `main_skill`) is intrinsic to the key names, so no per-role data keys
+    are added; the plugin resolves the special cases from the full party data of R-37.
+18. **No condition-expression language in 0.1.0** (R-39): condition-gated values stay
+    "value + documented convention" (uptime fraction / per-application / count) applied by the
+    plugin, because a condition DSL would drag sigils, break state and status durations into the
+    tool, which are explicit non-goals.
 
-## 12. Open questions — answers recorded (see §11 items 10–13 for rationale)
+## 12. Open questions — answers recorded (see §11 items 10–18 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |
 | Q-1 | Is `objective` always "bigger is better"? (Assumed yes; plugin docs must state it.) | **Yes.** Plugins must return numbers where bigger is better; the tool maximizes and never negates or normalizes. This is stated in `PLUGINS.md` (M9) and in the plugin contract (R-21, R-27, §5). A plugin wanting "smaller is better" negates its own score. |
-| Q-2 | Do skill-hit counts / cooldown windows belong to the plugin (assumed) or to a shared rotation model (not in 0.1.0)? | **Data supplies the facts, the plugin supplies the use.** Character data carries the basic cooldown time in seconds from the game's character spec for main/sub active skills, and a measured loop time in seconds (video analysis) for the main character's auto skill (R-30). How `cd`/`loop_time` are used is entirely up to the target function/plugin (R-31): per-hit damage, the §6.2 `damage(source)/period(source)` sum, or a character-specific rotation. No shared rotation model in 0.1.0. |
+| Q-2 | Do skill-hit counts / cooldown windows belong to the plugin (assumed) or to a shared rotation model (not in 0.1.0)? | **Data supplies the facts, the plugin supplies the use.** Character data carries the basic cooldown time in seconds from the game's character spec for main/sub active skills, and a measured loop time in seconds (video analysis) for every authored character's auto skill (R-30; the built-in DPS targets use the `main` slot's value, and sub-slot auto-skill cases read the sub's own — R-40). How `cd`/`loop_time` are used is entirely up to the target function/plugin (R-31): per-hit damage, the §6.2 `damage(source)/period(source)` sum, or a character-specific rotation. No shared rotation model in 0.1.0. |
 | Q-3 | Should the tool ever enforce a per-character minimum automatically (the game's "main talents appear more often" bias) or leave it purely to R-14? | **Purely R-14.** The tool applies no implicit bias; users are expected to provide reasonable per-character `min`/`max` to tune the talent-level distribution. Documented so the config carries the burden. |
 | Q-4 | Multi-scenario runs (several DEF/RES enemy profiles in one invocation)? | **Deferred.** The priority for the second release is instead a more general *target* that incorporates CD/loop time in seconds — still a simplified calculation with no real timeline and no buff durations, approximating CD/loop effects (the §6.2 shape generalized; `simple_dps` promoted to a built-in `dps` target, M8+). The `scenarios:` list remains deferred. |
+| Q-5 | Which skills may a character use from each party slot? | **Fixed role rules over the existing four skill keys, no extra keys** (R-40): `main` uses `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` use `sub_skill` + `ult_skill` and never `main_skill`; the role exception is the **auto skill** — some characters act from the sub slot with it, so `loop_time` is authored for every character's `auto_skill`. Which of these actually feed the objective is plugin-side logic, and `ctx` must carry all three members in full (R-37). |
+| Q-6 | Who owns timeline/condition simulation (talent gated on skill activation, "after activation", "target has sigil")? | **The plugin** (R-31/R-39): 0.1.0 ships data only — resolved levels, the per-talent buffer breakdown, and timing (R-30/R-37/R-38) — with no shared timeline helper and no condition DSL; the gated-value convention is documented per character/plugin (R-39) and tunable via `target_opts:`. Shared timeline helpers arrive with the 0.2.0 generalized target. |
+| Q-7 | May the same character occupy two party slots? | **No.** Three distinct characters are required; a repeated name is an input error (exit 2, R-41). |
+| Q-8 | Where do enemy DEF/RES/PEN/VUL and break state come from? | **The `scenario:` block** in the run config (R-36), merged over kernel defaults and delivered as `ctx["scenario"]`; `--scenario KEY=VAL` overrides single keys. Formula terms that are not defined in game (`IGNORING`, `generalDmg`, `dmgPlus`, `finalDmg`, …) are not exposed. |

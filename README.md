@@ -10,8 +10,8 @@ the objective ("what number are we maximizing?") is a **pluggable calculation mo
 installed copy of the tool without rebuilding it.
 
 > **Status:** design stage (0.1.0 T.B.D.). The CLI below is the planned 0.1.0 interface;
-> see [DESIGN.md](DESIGN.md) for the implementation plan and [DesignGoals.md](DesignGoals.md)
-> for the game-spec background.
+> see [DESIGN.md](DESIGN.md) for the implementation plan (it restates the game-spec rules the
+> design depends on) and [PLUGINS.md](PLUGINS.md) for the objective-module contract.
 
 ## Installation
 
@@ -39,6 +39,15 @@ The party can also come entirely from the command line:
 > ssoptim optimize -m "Char A" -s "Char B" -s "Char C" -t 65 -f ./plugins/my_calc.py:objective -vv
 ~~~
 
+Enemy profile and plugin knobs override the config file, and the shipped DPS sample is
+loaded by path:
+
+~~~console
+> ssoptim optimize --config ./my_party.yml -t 65 -f ./plugins/simple_dps.py:objective \
+>                  --scenario DEF=350 --scenario RES=570 --target-opts uptime_fraction=0.6 \
+>                  --show-params -o result.yml
+~~~
+
 * -c, --config CFG
     * CFG: Path to Configuration File (default: ssoptim.yml) — carries party, budget,
       target and restrictions
@@ -62,8 +71,15 @@ The party can also come entirely from the command line:
       go unused when the objective stops improving
 * -o, --out OUT
     * OUT: write the result YAML to this path (default: stdout)
+* --scenario KEY=VAL
+    * KEY=VAL: per-key override of the enemy profile (`DEF`, `RES`, `PEN`, `VUL`,
+      `enemyBreakStatus`, `resilienceBreakDmg`, …); repeatable
+* --target-opts KEY=VAL
+    * KEY=VAL: free-form plugin-specific constants handed to the objective module
+      (e.g. `uptime_fraction=0.6` for a condition-gated buff); repeatable
 * --show-params
-    * also dump the aggregated talent-parameter dictionary the objective received
+    * also dump the aggregated talent-parameter dictionary and the effective enemy
+      scenario the objective received
 * --maxiter N --popsize N --runs N --seed N --no-polish
     * SciPy Differential Evolution knobs (`runs` = seeded restarts, best feasible kept)
 * -v, --verbose
@@ -100,6 +116,16 @@ data_dirs:
 target: auto_attack
 total_level: 65
 total_level_mode: exact
+scenario:                 # enemy profile; unspecified keys keep the kernel defaults
+  DEF: 500
+  RES: 750
+  res_table: { Lux: 250, default: 750 }   # optional per-element weakness table
+  PEN: 0
+  VUL: 0
+  enemyBreakStatus: false
+  resilienceBreakDmg: 1.5
+target_opts:              # free-form constants for the objective module
+  uptime_fraction: 0.6
 restrictions:
   main:
     min: 30
@@ -144,13 +170,27 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
 "Char A":
   stats: { Atk: 6966, HP: 94662, DEF: 0 }
   auto_skill:
-    elemLuxDmg:
-      skillPercentAmend: 11.30    # 1130 % of Atk
+    loop_time: 4.20                    # seconds per auto-attack cycle (measured)
+    damage:
+      elemLuxDmg:
+        skillPercentAmend: 11.30       # 1130 % of Atk
   main_skill:
-    elemLuxDmg:
-      skillPercentAmend: 8.90
-    slotMarkDmg:
-      skillPercentAmend: 1.22
+    cd: 12.0                           # active-skill cooldown (game spec)
+    damage:
+      elemLuxDmg:
+        skillPercentAmend: 8.90
+  sub_skill:
+    cd: 10.0                           # active skill when the character is in support
+    damage:
+      elemLuxDmg:
+        skillPercentAmend: 5.00
+  ult_skill:
+    sources:                           # damage portions calculated separately
+      - name: hit
+        damage: { elemLuxDmg: { skillPercentAmend: 20.00 } }
+      - name: mark
+        cd: 6.0                        # this portion has its own period
+        damage: { slotMarkDmg: { skillPercentAmend: 1.22 } }
   talents_main:                   # first 4 = core, rest = sub
     - talent_name: "Core Talent 1"
       core_talent: true
@@ -171,6 +211,23 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
   between the declared anchors, and level 0 adds nothing.
 * Parameter names are free-form. Character-specific keys (e.g. a signature-mechanic
   value) are allowed; they are passed through to the objective module untouched.
+  A documented key convention maps the common buffers to formula arguments
+  (`Atk_multiplier`, `Atk_absMod`, `critDmgMod`, `crit_rateMod`, `slot{X}Dmg`,
+  `slot{X}CritDmg`, `elem{E}Dmg`, `DEF_rate_mod`, `RES_rate_mod`); see
+  [PLUGINS.md](PLUGINS.md) for the full table.
+* `cd` (active skills, from the game's character spec) and `loop_time` (auto skill,
+  measured from gameplay/video analysis) are seconds of **data**: the tool validates and
+  forwards them, and the objective module decides how they become DPS. They are optional;
+  without them a DPS-minded target falls back to per-hit damage and says so with `-v`.
+* A skill may split into `sources:`, each with its own damage type, its own `cd`/`loop_time`
+  and optional `dot: true`; each source is damage-calculated separately with only the buffers
+  that apply to it and the results are added. A skill with a single portion may still use the
+  shorthand `damage:` map. When loading, the shorthand is normalized to a single-element
+  `sources:` list inheriting the skill-level timing, so objective modules always see one shape.
+* Skill-role availability is fixed by the key names, not by extra keys: the `main` slot uses
+  `auto_skill` + `main_skill` + `ult_skill`; a support slot uses `sub_skill` + `ult_skill` and
+  its own `auto_skill` (some characters act from support with the auto skill) — never
+  `main_skill`. The objective module decides which of them feed its number.
 * `skillPercentAmend` in character files is percent-of-Atk (×100 percent units);
   it is converted to the in-game unit by the tool.
 
@@ -197,44 +254,71 @@ party:
 ~~~
 
 With `-vv`, the aggregated parameter dictionary (every talent key summed at the chosen
-levels, including character-specific keys) is appended as `aggregated_params:`.
+levels, including character-specific keys) is appended as `aggregated_params:`, together with
+the effective `scenario:` values.
 
 ### Objective plugins
 
-An objective module is any callable that takes the flat level vector and returns a
-number (bigger = better):
+An objective module is any callable that takes the flat level vector **plus the data
+context the tool builds for it**, and returns a number (bigger = better):
 
 ~~~python
-def objective(x) -> float:
-    # x = main character's talent levels, then sub1, then sub2,
-    #     each in the order declared in its character file
+def objective(x, ctx) -> float:
+    # x   = main character's talent levels, then sub1, then sub2,
+    #       each in the order declared in its character file
+    # ctx = per-slot character objects (stats, skills, talents),
+    #       resolved levels, per-talent buffers, aggregated buffers, scenario
     ...
     return expected_dps
 ~~~
 
-Character/party data is not a solver argument — the plugin binds it (closure,
-`functools.partial`, or by reading the data the tool hands it). Helpers the tool
-provides: `aggregate_params(x)` (sum all same-key talent parameters at the chosen
-levels), `resolve_talent_value(talent, level)` (interpolated level value), and the
-`damage` kernel (`calculate_damage`, `def_amend`, `res_amend`, `skill_percent_to_amend`).
+`ctx` is built by the tool for every candidate, so the plugin never maps `x` positions to
+talents and never re-reads YAML. Its contents (see [PLUGINS.md](PLUGINS.md) for the full
+contract): `ctx["members"]["main"|"sub1"|"sub2"]` (full character data, incl. `HP` for HP-scaled
+mechanics, skill blocks with `cd`/`loop_time`/`sources`, the talent set in use),
+`ctx["members"][slot].talent_params` (per-talent `talent → {key: value}` at the current levels —
+what a timeline-style plugin needs to attribute a buff), `ctx["aggregated"]` (the summed map),
+`ctx["scenario"]` (enemy profile), and `ctx["target_opts"]` (plugin knobs from `--target-opts`).
+Plugins may still bind their own extra constants by closure or `functools.partial`.
+
+Helpers the tool provides: `resolve_talent_params(x, ctx)` (the level-resolved view above),
+`aggregate_params(x)` (sum of all same-key talent parameters at the chosen levels),
+`resolve_talent_value(talent, level)` (interpolated level value), and the `damage` kernel
+(`calculate_damage`, `def_amend`, `res_amend`, `skill_percent_to_amend`).
+
+Two rules matter when you write one (R-33/R-34): the damage kernel **applies every argument
+you give it** and knows nothing about which talent keys belong to which skill, so the plugin
+picks the argument set per damage source; and the plugin — not the kernel — applies the
+buffers, folding `Atk_multiplier`/`Atk_absMod` and any other status buff into the attacker's
+effective `Atk` **before** the call.
 
 Reference plugin for the documented default target (`auto_attack`):
 
 ```python
-from ssoptim.ssoptim.plugins import aggregate_params
 from ssoptim.ssoptim.damage import calculate_damage, skill_percent_to_amend
+from ssoptim.ssoptim.plugins import aggregate_params
 
-def objective(x) -> float:
+def objective(x, ctx) -> float:
+    main, sc = ctx["members"]["main"], ctx["scenario"]
     p = aggregate_params(x)                     # all talent keys summed
+    src = main.auto_skill["sources"][0]         # shorthand `damage:` -> one normalized source
+    hit = src["damage"]["elemLuxDmg"]
     return calculate_damage(
-        Atk=party.main.stats["Atk"] * (1 + p.get("Atk_multiplier", 0.0)),
-        skillPercentAmend=skill_percent_to_amend(1130),   # auto skill: 1130 % Atk
+        Atk=main.stats["Atk"] * (1 + p.get("Atk_multiplier", 0.0)) + p.get("Atk_absMod", 0.0),
+        skillPercentAmend=skill_percent_to_amend(hit["skillPercentAmend"] * 100),
         critDmg=1.5 + p.get("critDmgMod", 0.0),
         crit_rate=0.5 + p.get("crit_rateMod", 0.0),
-        slotDmg=1.0 + p.get("slotAutoAttackDmg", 0.0),
+        slotDmg=1.0 + p.get("slotAutoAttackDmg", 0.0),   # auto-attack keys only
         elementDmg=1.0 + p.get("elemLuxDmg", 0.0),
+        DEF=sc["DEF"], RES=sc["RES"],                   # enemy profile
     )
 ```
+
+The shipped DPS sample (`plugins/simple_dps.py`) does the same per damage source, then divides
+each source's damage by its period (`loop_time` for the auto skill, `cd` for the active skill)
+and sums the rates — each source gets only its own buffers (e.g. `slotMarkDmg` for a mark
+portion, not `slotSkillDmg`). 0.1.0 ships timing/buffer **data** only; the timeline
+approximation lives in the plugin. Full walkthroughs are in [PLUGINS.md](PLUGINS.md).
 
 Custom plugins live outside the package and are referenced by spec:
 
@@ -245,9 +329,18 @@ Custom plugins live outside the package and are referenced by spec:
 
 ## Known Issues
 
-* The tool is pre-release: the bundled character data set is incomplete, and objectives
-  other than `auto_attack` (per-skill, ultimate, cooldown-window DPS) are planned for
-  later 0.x releases.
+* The tool is pre-release: the bundled character data set is incomplete, and built-in
+  objectives other than `auto_attack` are planned for later 0.x releases. The DPS sample
+  (`plugins/simple_dps.py`) ships as an external plugin, not as a built-in target.
+* Timing data (`cd`, `loop_time`) is authored from the game spec or video analysis and is the
+  data author's responsibility; where it is missing, DPS-minded targets fall back to per-hit
+  damage and warn with `-v`.
+* 0.1.0 ships no shared timeline helper and no condition expression: talent gating and
+  rotation assumptions are approximated inside each plugin, using the per-talent buffers and
+  timing in `ctx`.
+* The buffer-key convention (`Atk_multiplier`, `slotMarkDmg`, …) is documented, not enforced;
+  unknown keys are passed to the plugin untouched, and the damage kernel applies exactly the
+  arguments the plugin hands it.
 * Objective accuracy is the plugin author's responsibility — the tool guarantees the
   *talent distribution* obeys the constraints, not that a plugin models a character
   correctly.
@@ -293,8 +386,9 @@ ssoptim/                 # repo root (project "SSOptim")
 ├── tasks.py             # invoke tasks
 ├── CHANGES.md           # release history
 ├── DESIGN.md            # design specification
+├── PLUGINS.md           # plugin development guide
 ├── characters/          # your character YAML data
-├── plugins/             # your objective modules
+├── plugins/             # your objective modules (simple_dps.py is the shipped sample)
 ├── tests/               # pytest suite + YAML fixtures
 └── ssoptim/             # package
     ├── __init__.py      # __version__ (setuptools-scm fallback)
@@ -302,10 +396,10 @@ ssoptim/                 # repo root (project "SSOptim")
     ├── characters/      # bundled default data set
     └── ssoptim/         # implementation
         ├── ssoptim.py   # orchestration
-        ├── data.py      # YAML load + validation
-        ├── talent.py    # level interpolation + parameter aggregation
-        ├── damage.py    # damage kernel
-        ├── plugins.py   # objective-module resolution
+        ├── data.py      # YAML load + validation + scenario block
+        ├── talent.py    # interpolation + per-talent/aggregated buffers
+        ├── damage.py    # damage kernel (applies every argument it is given)
+        ├── plugins.py   # objective-module resolution + data context (ctx)
         ├── targets/     # built-in objectives (auto_attack …)
         ├── constraints.py
         ├── optimize.py  # SciPy Differential Evolution driver

@@ -46,7 +46,7 @@ here instead of delegated to any other document, so §3's requirements can be re
   [stella_sora_damage.py](stella_sora_damage.py), which the tool vendors as its kernel (R-24).
   The formula's inputs come from base stats, skill values and talent modifiers; individual
   talent values may be gated on conditions (cooldown window, "after skill activation",
-  "target has sigil") — the convention for those is §3 R-39.
+  "target has mark") — the convention for those is §3 R-39.
 * **Scaling quirks:** some characters compute damage from HP or other base stats, so the full
   character record must reach the objective module (R-37).
 
@@ -76,8 +76,8 @@ here instead of delegated to any other document, so §3's requirements can be re
   turn into DPS is the target function's/plugin's decision (R-31); 0.1.0 has no timeline
   simulation and ships no timeline helper (only the data of R-30/R-38).
 - A condition-expression language in the data format: condition-gated talent values
-  (cooldown window, "after skill activation", "target has sigil") are a documented
-  convention resolved by the plugin (R-39); sigil/break state itself is not modelled.
+  (cooldown window, "after skill activation", "target has mark") are a documented
+  convention resolved by the plugin (R-39); mark/break state itself is not modelled.
 - An energy/charge/activation model: how often an ultimate is available is not simulated, so
   ult portions enter the objective per hit or at a plugin-assumed rate (see §6.2).
 
@@ -148,7 +148,7 @@ tests, and `CHANGES.md` entries.
 | R-36 | The enemy/scenario profile is user input: a `scenario:` block in the run config with `DEF`, `RES`, an optional per-element `res_table` (weakness/neutral/resistance values), `PEN`, `VUL`, `DEF_Ignore`, `DEF_Penetrate`, `enemyBreakStatus`, `resilienceBreakDmg`, merged over the kernel's defaults and handed to the plugin as `ctx["scenario"]`. Free-form `target_opts:` (CLI `--target-opts KEY=VAL`) carries plugin-specific constants into `ctx["target_opts"]`. `IGNORING`, `generalDmg`, `dmgPlus`, `finalDmg`, … stay kernel-only neutral defaults because they are not defined in game. Exactly **one** scenario per invocation in 0.1.0 (Q-4 defers multi-scenario). |
 | R-37 | The tool provides the **data context** to the plugin: `f(x, ctx)`. `ctx` carries, per party slot (`main`, `sub1`, `sub2`), the full character object (`stats` incl. `HP`/`DEF` for HP-scaled mechanics, all skill blocks with `cd`/`loop_time`/`sources`, the talent set in use), the merged scenario, plugin target options, and the buffer maps of R-38. All three members' detail must be present so plugins can model support-side contributions and sub-slot auto-skill cases (R-40). |
 | R-38 | Per evaluated candidate the tool builds `ctx` with the level resolution already done: `ctx["members"][slot].talent_levels` (name-keyed, in R-08 order), `ctx["members"][slot].talent_params` (**per-talent** breakdown `talent → {key: value at that level}` using the R-19 interpolation tables), and `ctx["aggregated"]` (the summed map, identical to `aggregate_params(x)`). Helper `resolve_talent_params(x, ctx)` returns the same data. The **per-talent breakdown is mandatory**, not just the sum: talent activation is gated on skill activation, so timeline-style plugins (simple approximation or real simulation, owned by the plugin per R-31) must attribute a buff to the talent that granted it. No YAML parsing per evaluation (§5 invariant). |
-| R-39 | Talent values may be **condition-gated** in the game (cooldown window, "after skill activation", "target has sigil"). 0.1.0 has no condition-expression language in the data format: the *meaning* of an aggregated value — per-application amount, uptime fraction, or plain count — is a documented convention declared in the character's/plugin's docs and applied by the plugin (e.g. a value multiplied by an assumed uptime). Sigil and break state are not modelled by the tool. |
+| R-39 | Talent values may be **condition-gated** in the game (cooldown window, "after skill activation", "target has mark"). 0.1.0 has no condition-expression language in the data format: the *meaning* of an aggregated value — per-application amount, uptime fraction, or plain count — is a documented convention declared in the character's/plugin's docs and applied by the plugin (e.g. a value multiplied by an assumed uptime). Mark and break state are not modelled by the tool. |
 | R-40 | Role semantics of the existing skill keys (no extra keys): the `main` slot uses `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` use `sub_skill` + `ult_skill` and **never `main_skill`**. The special case is `auto_skill`: some characters act from the sub slot with their auto skill (currently the only such role exception), which is plugin-side logic; hence `loop_time` is authored for every character's `auto_skill` (R-30). |
 | R-41 | A party must consist of three **distinct** characters; the same character name in two slots is a loader error (exit 2). |
 
@@ -685,7 +685,7 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
     are added; the plugin resolves the special cases from the full party data of R-37.
 18. **No condition-expression language in 0.1.0** (R-39): condition-gated values stay
     "value + documented convention" (uptime fraction / per-application / count) applied by the
-    plugin, because a condition DSL would drag sigils, break state and status durations into the
+    plugin, because a condition DSL would drag marks, break state and status durations into the
     tool, which are explicit non-goals.
 
 ## 12. Open questions — answers recorded (see §11 items 10–18 for rationale)
@@ -697,6 +697,6 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
 | Q-3 | Should the tool ever enforce a per-character minimum automatically (the game's "main talents appear more often" bias) or leave it purely to R-14? | **Purely R-14.** The tool applies no implicit bias; users are expected to provide reasonable per-character `min`/`max` to tune the talent-level distribution. Documented so the config carries the burden. |
 | Q-4 | Multi-scenario runs (several DEF/RES enemy profiles in one invocation)? | **Deferred.** The priority for the second release is instead a more general *target* that incorporates CD/loop time in seconds — still a simplified calculation with no real timeline and no buff durations, approximating CD/loop effects (the §6.2 shape generalized; `simple_dps` promoted to a built-in `dps` target, M8+). The `scenarios:` list remains deferred. |
 | Q-5 | Which skills may a character use from each party slot? | **Fixed role rules over the existing four skill keys, no extra keys** (R-40): `main` uses `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` use `sub_skill` + `ult_skill` and never `main_skill`; the role exception is the **auto skill** — some characters act from the sub slot with it, so `loop_time` is authored for every character's `auto_skill`. Which of these actually feed the objective is plugin-side logic, and `ctx` must carry all three members in full (R-37). |
-| Q-6 | Who owns timeline/condition simulation (talent gated on skill activation, "after activation", "target has sigil")? | **The plugin** (R-31/R-39): 0.1.0 ships data only — resolved levels, the per-talent buffer breakdown, and timing (R-30/R-37/R-38) — with no shared timeline helper and no condition DSL; the gated-value convention is documented per character/plugin (R-39) and tunable via `target_opts:`. Shared timeline helpers arrive with the 0.2.0 generalized target. |
+| Q-6 | Who owns timeline/condition simulation (talent gated on skill activation, "after activation", "target has mark")? | **The plugin** (R-31/R-39): 0.1.0 ships data only — resolved levels, the per-talent buffer breakdown, and timing (R-30/R-37/R-38) — with no shared timeline helper and no condition DSL; the gated-value convention is documented per character/plugin (R-39) and tunable via `target_opts:`. Shared timeline helpers arrive with the 0.2.0 generalized target. |
 | Q-7 | May the same character occupy two party slots? | **No.** Three distinct characters are required; a repeated name is an input error (exit 2, R-41). |
 | Q-8 | Where do enemy DEF/RES/PEN/VUL and break state come from? | **The `scenario:` block** in the run config (R-36), merged over kernel defaults and delivered as `ctx["scenario"]`; `--scenario KEY=VAL` overrides single keys. Formula terms that are not defined in game (`IGNORING`, `generalDmg`, `dmgPlus`, `finalDmg`, …) are not exposed. |

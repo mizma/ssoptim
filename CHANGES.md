@@ -70,7 +70,7 @@ cosmetic/clarification · **[Performance]** performance improvement · **[Fixed]
   plugins can attribute a buff to the talent that granted it. Plugins never map `x` positions
   themselves.
 - **[Added]** condition-gated talent values are a documented convention, not a data expression
-  (R-39): cooldown windows, "after skill activation" and "target has sigil" are approximated by
+  (R-39): cooldown windows, "after skill activation" and "target has mark" are approximated by
   the plugin (value = per-application amount / uptime fraction / count), tunable via `target_opts:`.
 - **[Added]** role rules over the existing skill keys (R-40): main uses `auto_skill` +
   `main_skill` + `ult_skill`; support slots use `sub_skill` + `ult_skill` and their own

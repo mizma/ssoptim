@@ -22,7 +22,8 @@
   (could be a expected fail state if the implementation status is only scaffolding etc.)
 * For long running tasks, split into small steps.
 * If milestones are defined, commit changes before moving onto the next milestone
-* Do not touch the [CHANGES.md](./CHANGES.md) file until a release is planned.
+* Do not touch the [CHANGES.md](./CHANGES.md) file until a release is planned and instructed to
+  update the document.
   * [CHANGES.md](./CHANGES.md) will be edited just before release based on the commit history available
     at the time of release to avoid any premature change history.
 
@@ -32,7 +33,7 @@
   a requirement/feature change.
   * Update documentation to clarify what the plan is for the implementation before implementation.
   * Update documentation to match implementation details after the implementation
-    phase so any implementation limitations are documented.
+    phase so any implementation details that diverged from original plan is kept in sync in the documentation.
 * Always implement or update tests that relates to the change before running tests.
 * After implementation and test, always re-verify the implementation changes against
   the documentation in [DESIGN.md][1] and [README.md][2] and verify integrity.

@@ -49,43 +49,43 @@ loaded by path:
 ~~~
 
 * -c, --config CFG
-    * CFG: Path to Configuration File (default: ssoptim.yml) — carries party, budget,
-      objective and restrictions
+  * CFG: Path to Configuration File (default: ssoptim.yml) — carries party, budget,
+    objective and restrictions
 * -m, --main MAIN
-    * MAIN: main character name (overrides `party.main`)
+  * MAIN: main character name (overrides `party.main`)
 * -s, --sub SUB
-    * SUB: support character name; repeat exactly twice, fills `sub1` then `sub2`
+  * SUB: support character name; repeat exactly twice, fills `sub1` then `sub2`
 * -t, --total-levels N
-    * N: total talent levels available to distribute (mandatory, unless given in the
-      config file)
+  * N: total talent levels available to distribute (mandatory, unless given in the
+    config file)
 * -f, --objective SPEC
-    * SPEC: optimization objective module/function — `auto_attack` (default), a dotted
-      module path `pkg.mod:func`, or a file path `./plugins/my_calc.py:func`
+  * SPEC: optimization objective module/function — `auto_attack` (default), a dotted
+    module path `pkg.mod:func`, or a file path `./plugins/my_calc.py:func`
 * --char PATH
-    * PATH: character data file or directory; repeatable, searched before the bundled
-      character set
+  * PATH: character data file or directory; repeatable, searched before the bundled
+    character set
 * --restrictions FILE
-    * FILE: YAML file of optimization restrictions (merged over the config file)
+  * FILE: YAML file of optimization restrictions (merged over the config file)
 * --total-level-mode {exact,at_most}
-    * exact (default): the chosen levels must sum to the budget; at_most: levels may
-      go unused when the objective stops improving
+  * exact (default): the chosen levels must sum to the budget; at_most: levels may
+    go unused when the objective stops improving
 * -o, --out OUT
-    * OUT: write the result YAML to this path (default: stdout)
+  * OUT: write the result YAML to this path (default: stdout)
 * --scenario KEY=VAL
-    * KEY=VAL: per-key override of the enemy profile (`DEF`, `RES`, `PEN`, `VUL`,
-      `enemyBreakStatus`, `resilienceBreakDmg`, …); repeatable
+  * KEY=VAL: per-key override of the enemy profile (`DEF`, `RES`, `PEN`, `VUL`,
+    `enemyBreakStatus`, `resilienceBreakDmg`, …); repeatable
 * --objective-opts KEY=VAL
-    * KEY=VAL: free-form plugin-specific constants handed to the objective module
-      (e.g. `uptime_fraction=0.6` for a condition-gated buff); repeatable
+  * KEY=VAL: free-form plugin-specific constants handed to the objective module
+    (e.g. `uptime_fraction=0.6` for a condition-gated buff); repeatable
 * --show-params
-    * also dump the aggregated talent-parameter dictionary and the effective enemy
-      scenario the objective received
+  * also dump the aggregated talent-parameter dictionary and the effective enemy
+    scenario the objective received
 * --maxiter N --popsize N --runs N --seed N --no-polish
-    * SciPy Differential Evolution knobs (`runs` = seeded restarts, best feasible kept)
+  * SciPy Differential Evolution knobs (`runs` = seeded restarts, best feasible kept)
 * -v, --verbose
-    * verbosity count: `-v` warnings, `-vv` per-evaluation objective values and parameters
+  * verbosity count: `-v` warnings, `-vv` per-evaluation objective values and parameters
 * -h, --help, --version
-    * help / version (`0.0.0+dev` from a bare checkout, otherwise the built version)
+  * help / version (`0.0.0+dev` from a bare checkout, otherwise the built version)
 
 Precedence: command-line options override the `--restrictions` file, which overrides the
 `--config` file, which overrides built-in defaults.
@@ -309,7 +309,7 @@ effective `Atk` **before** the call.
 
 Reference plugin for the documented default objective (`auto_attack`):
 
-```python
+~~~python
 from ssoptim.ssoptim.damage import calculate_damage, skill_percent_to_amend
 from ssoptim.ssoptim.plugins import aggregate_params
 
@@ -327,7 +327,7 @@ def objective(x, ctx) -> float:
         elementDmg=1.0 + p.get("elemLuxDmg", 0.0),
         DEF=sc["DEF"], RES=sc["RES"],                   # enemy profile
     )
-```
+~~~
 
 The shipped DPS sample (`plugins/simple_dps.py`) does the same per damage source, then divides
 each source's damage by its period (`loop_time` for the auto skill, `cd` for the active skill)

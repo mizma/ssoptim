@@ -157,7 +157,7 @@ tests, and `CHANGES.md` entries.
 | R-41 | A party must consist of three **distinct** characters; the same character name in two slots is a loader error (exit 2). |
 | R-42 | The `-v/--verbose` **count** follows the same precedence as every other option (CLI > config) and is handed to plugins inside `ctx`: `ctx["verbose"]` (the integer count) and `ctx["log"]` — that `pout` **curried** with the run's verbosity already bound. The tool keeps the click-cutter template's `pout(msg, Verbose, level, newline)` (+ `Level` IntEnum: DEBUG shown at `Verbose >= 2` on stdout, WARNING at `>= 1` on stderr, INFO/ERROR/CRITICAL always) as the single definition of verbosity, and plugin-side progress output must go through `pout`/`ctx["log"]` so it follows the user's `-v`: `Level.WARNING` for "data missing, falling back" notices and `Level.DEBUG` for per-evaluation values — the R-28 levels, one definition shared by tool and plugin. |
 | R-43 | Buff/debuff values carry **`duration`** and **`activation`** as reserved keys inside the same map as the level keys: `Atk_multiplier: { 1: 0.15, 6: 0.7, duration: { 1: 10, 4: 12 }, activation: main_skill }`. `duration` is in **seconds**, sparse, and interpolated by the R-19 rule (10 s for levels 1–3, 12 s for 4–6); `activation` is strictly one of the four skill keys (`auto_skill`/`main_skill`/`sub_skill`/`ult_skill`, R-40) and names the skill whose use grants the buff. Skills declare the same pair on their `buf`/`debuf` maps inside a `sources[]` entry (R-32). The loader validates the pair and **excludes both keys from aggregation** (R-20, R-35): they are convention metadata, never damage-formula keys. |
-| R-44 | The bundled reference character set (and the data behind the sample objective) is authored from **user-extracted** wiki data taken from the Stella Sora wiki pages forチネセ, アヤメ, テレサ; the extract is checked into the repo (`wiki_data/`) so the tool and the build never fetch from the wiki (TODO: the extract must land before M7 data authoring — §9). |
+| R-44 | The bundled reference character set (and the data behind the sample objective) is authored from **user-extracted** wiki data taken from the Stella Sora wiki pages forチトセ, アヤメ, テレサ; the extract is checked into the repo (`wiki_data/`) so the tool and the build never fetch from the wiki (TODO: the extract must land before M7 data authoring — §9). |
 
 ### CLI / IO
 
@@ -511,7 +511,7 @@ as follows, so that timing data is actually exercised end-to-end:
 3. 0.1.0 ships **data only** for timeline-style objectives: `ctx` carries levels, per-talent
    buffers and timing (R-30/R-37/R-38), but no shared timeline helper. Plugins that want an
    approximation build their own.
-4. The **model data** for these samples is the user-extracted wiki dump forチネセ, アヤメ,
+4. The **model data** for these samples is the user-extracted wiki dump forチトセ, アヤメ,
    テレサ (R-44): the three characters supply the skill percents, `cd`/`loop_time` and talent
    tables (including the `duration`/`activation` pair) that the sample objective is written
    against. Details are not pinned down yet — see the §9 TODO, which blocks M7 data authoring.
@@ -584,7 +584,7 @@ ssoptim/                     # repo root = project "SSOptim"
 ├── pyproject.toml                   # setuptools + setuptools-scm, [project.scripts] ssoptim = "ssoptim.cli:main"
 ├── tasks.py                         # invoke tasks mirroring the Makefile
 ├── stella_sora_damage.py            # scratch reference; vendored into the package at M2, then deleted
-├── wiki_data/                       # TODO (blocks M7): user-extracted reference dump from theチネセ/アヤメ/テレサ
+├── wiki_data/                       # TODO (blocks M7): user-extracted reference dump from theチトセ/アヤメ/テレサ
 │                                    #   wiki pages (R-44); documentation source only, never read at runtime
 ├── characters/          # user data set (searched by the tool); <name>.yml
 ├── plugins/             # example/custom objective plugins; simple_dps.py is the shipped DPS sample (§6.3)
@@ -624,7 +624,7 @@ Naming/package facts fixed here:
 - `requires-python = ">=3.12"`; `dependencies`: `click>=8.1,<9`, `PyYAML>=6,<7`, `scipy>=1.11,<2`, `numpy` (via scipy).
 - `optional-dependencies.dev`: `pyinstaller`, `build`, `twine`, `pytest`.
 - setuptools-scm supplies `__version__`; `dynamic = ["version"]`.
-- File headers follow click-cutter: shebang, coding line, `Copyright (c) 2026 aoi mizma <aoi@mizma.example>`,
+- File headers follow click-cutter: shebang, coding line, `Copyright (c) 2026 aoi mizma <aoi.mizma@path-works.net>`,
   `SPDX-License-Identifier: MIT`.
 - Data is *not* compiled into the wheel beyond a convenience seed set; plugins are never
   compiled in beyond built-ins (R-22 extensibility without rebuild).
@@ -646,7 +646,7 @@ Each milestone is independently testable and lands with docs/changelog updates.
 | M8 | `PLUGINS.md`: detailed plugin development guide (separate document) — objective contract and "bigger is better" convention (R-21/Q-1), flat `x` vector layout (R-08), the `ctx` contract and level-resolution helpers (R-37/R-38, incl. the per-talent breakdown), the buffer-key vocabulary (R-35) and gated-value conventions (R-39), scenario inputs (R-36), **kernel/buffer ownership** (R-33/R-34: the kernel applies everything it is given; the plugin selects keys and applies Atk/status buffs first), skill timing (R-30/R-31), the **duration/activation gating convention** (R-43: reserved keys inside the level map, `activation` as one of the four skill keys, and the `min(duration, period)/period` uptime derivation), plugin-side progress output through `pout`/`ctx["log"]` (R-42), role availability (R-40), multi-source skills (R-32), the §6.2 DPS recipe with a hand-rolled timeline approximation, worked `auto_attack` and `simple_dps` walkthroughs, plugin exception → exit 4 behaviour, solver-knob tuning | every code snippet in `PLUGINS.md` runs verbatim against the M3 fixture party; `ssoptim optimize -f ./plugins/simple_dps.py:objective` matches the documented value; README §"Objective plugins" links to it |
 | M9+ | Extra built-in objectives (single skill, ult, cooldown-aware `dps` promoted from `simple_dps`, §12 Q-4 generalization), planned sub-commands (`chars`, `plugins`, `eval`) | each new objective documented in `PLUGINS.md` §"Built-in objectives" and registered in `objectives/`; `PLUGINS.md` extended in place |
 
-**TODO (blocks M7 data authoring, R-44):** the reference data extracted from theチネセ、アヤメ、テレサ
+**TODO (blocks M7 data authoring, R-44):** the reference data extracted from theチトセ、アヤメ、テレサ
 wiki pages must be checked into `wiki_data/` first. The repository holds that dump; neither the
 build nor the tool ever fetches from the wiki. Until it lands, M7 ships the §4.1-shaped fixture
 characters only.
@@ -689,9 +689,9 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
    root scratch file: the wheel must be self-contained; the root file stays until M2.
 7. **`simple` click-cutter CLI type** for 0.1.0: only `optimize` is specified; the `verb`
    argument keeps the door open for the planned `chars`/`plugins`/`eval` sub-commands.
- 8. **Aggregation helper inside the tool, not per plugin** (R-20): every plugin needs the
+8. **Aggregation helper inside the tool, not per plugin** (R-20): every plugin needs the
     same "sum all same-key params at chosen levels" step, including unknown keys.
- 9. **Semver 2.0 pre-1.0.0 alpha** and `CHANGES.md` change-point markers: interface
+9. **Semver 2.0 pre-1.0.0 alpha** and `CHANGES.md` change-point markers: interface
     versioning is pinned to README's Usage + config-file format (see README §Versioning).
 10. **Timing facts in data, DPS arithmetic in the plugin** (R-30/R-31): cooldown (from the
     game's character spec) and auto-skill loop time (from video analysis) are properties of
@@ -746,7 +746,7 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
     `pout`/`Level` in `ssoptim.py` as the single definition and injecting both the count (`ctx["verbose"]`)
     and the curried logger (`ctx["log"]`) into the per-candidate `ctx` of R-37 gives plugins the same
     levels as the tool (R-28's `-v`/`-vv`) at no per-evaluation cost.
-21. **Wiki data extracted into the repo, never fetched** (R-44): theチネセ/アヤメ/テレサ pages are the
+21. **Wiki data extracted into the repo, never fetched** (R-44): theチトセ/アヤメ/テレサ pages are the
     authoring source for the bundled set and for the sample objective's model; the user-extracted dump is
     checked into `wiki_data/` (TODO: it must land before M7) so the wheel stays self-contained, the build
     stays offline, and provenance stays reviewable in git.

@@ -35,7 +35,7 @@ here instead of delegated to any other document, so §3's requirements can be re
   (R-01, R-02, R-40).
 * **Talent structure:** per set, exactly 4 core talents (no level system: value 0/1, and every
   member must select exactly 2 of the 4 — a third is impossible and the choice cannot be skipped)
-  plus 9 sub talents at integer levels 0–6, where 0 means not owned (R-03..R-05, R-17).
+  plus 12 sub talents at integer levels 0–6, where 0 means not owned (R-03..R-05, R-17).
 * **How the game grants levels:** each pick offers 3 randomly chosen talents of that member and
   the player takes one; the main member's talents appear in the selection pool more often, and
   the number of picks available varies from build to build (~40–65+). That is why the level
@@ -92,7 +92,7 @@ tests, and `CHANGES.md` entries.
 | --- | --- |
 | R-01 | A party is exactly one `main` character plus two support characters `sub1`, `sub2`. |
 | R-02 | A character carries two independent talent sets: `talents_main` (role = main) and `talents_sub` (role = support). The set used depends only on the party slot. |
-| R-03 | Each talent set has exactly **4 core** talents and **9 sub** talents. |
+| R-03 | Each talent set has exactly **4 core** talents and **12 sub** talents. |
 | R-04 | Core talents have no level system: value is 0/1, and **every party member must select exactly 2 core talents**. The constraint is always enforced by the tool. |
 | R-05 | Sub talents have integer levels **0–6** (0 = not owned). |
 | R-06 | Skills are fixed data for a given party; only talent levels vary. Skill values enter the objective as constants, never as optimization variables. |
@@ -106,7 +106,7 @@ tests, and `CHANGES.md` entries.
 | R-09 | The objective is an opaque, possibly non-linear scalar function `f(x)` (damage/DPS); the tool maximizes it. No gradient/convexity assumption. |
 | R-10 | Solver default: `scipy.optimize.differential_evolution` with `integrality=True`, integer bounds and integer-coefficient linear constraints. |
 | R-11 | Every result must satisfy all constraints (bounds, core=2, budget, per-character min/max). Infeasible input must be reported as an error, not silently relaxed. |
-| R-12 | The search space is ~13 variables/character (≈39/party); runtime for one run must stay in the seconds-to-minutes range for the default target. |
+| R-12 | The search space is 16 variables/character (48/party); runtime for one run must stay in the seconds-to-minutes range for the default target. |
 
 ### Constraints (user-supplied)
 
@@ -177,7 +177,7 @@ One file per character (or several characters per file, top-level key = characte
 | `loop_time` | number (seconds) | Auto skill: measured duration of one full auto-attack cycle (video analysis), **authored for every character** — some characters act from the sub slot with their auto skill (R-30, R-40); built-in DPS targets read only the `main` slot's value. |
 | `sources[]` | list of maps | One entry per damage source: optional `name` label, a `damage` map in the same damage-class notation, and that source's own timing (`cd` or `loop_time`; defaults to the skill-level value when omitted) plus optional `dot: true` (→ `is_dot`). Separate sources are calculated separately with only their own buffers (R-32, §6). |
 | `skillPercentAmend` | number | Percent-of-Atk in **×100 percent** units, i.e. `11.30` ⇒ 1130 % of Atk. Kernel conversion: `skill_percent_to_amend(v * 100)`. |
-| `talents_main` / `talents_sub` | list | Index 0–3 = core (`core_talent: true`), index 4–12 = sub. Order defines the variable order of that character (R-08, R-17). |
+| `talents_main` / `talents_sub` | list | Index 0–3 = core (`core_talent: true`), index 4–15 = sub. Order defines the variable order of that character (R-08, R-17). |
 | `<param_key>` | map | `level: value`; sparse on the other side. Missing intermediate levels interpolated (R-19). |
 
 Abbreviated example (documentation sample, not shipped source):
@@ -216,7 +216,7 @@ Abbreviated example (documentation sample, not shipped source):
     # same shape; used when the character sits in sub1/sub2
 ```
 
-Validation rules the loader must enforce: 4 core + 9 sub per set, unique `talent_name`,
+Validation rules the loader must enforce: 4 core + 12 sub per set, unique `talent_name`,
 level keys ⊂ 0–6 (core ⊂ 0–1), numeric values, unknown-key tolerance (never fatal), and
 `cd`/`loop_time` present as numbers > 0 when given (absent is legal — DPS-minded plugins
 then fall back to per-hit damage and say so with `-v`). A `sources[]` entry must have a
@@ -318,7 +318,7 @@ Variables (per party member, from YAML order):
 
 ```
 x[char][i]  core i∈0..3 : bounds [0,1]
-            sub  i∈4..12: bounds [0,6] → tightened by user min/max (bounds, not constraints)
+            sub  i∈4..15: bounds [0,6] → tightened by user min/max (bounds, not constraints)
 ```
 
 Constraints, all generated (never hand-written), integer coefficients:

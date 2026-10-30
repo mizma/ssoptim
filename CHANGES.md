@@ -94,7 +94,7 @@ cosmetic/clarification · **[Performance]** performance improvement · **[Fixed]
   helper, and the unenforced key convention.
 
 - **[Added]** §1.1 "Game-model background": DESIGN.md is now self-contained — the party/role
-  rules, the 4-core-plus-9-sub talent structure, the pick-pool lore that makes the level budget
+  rules, the 4-core-plus-12-sub talent structure, the pick-pool lore that makes the level budget
   and per-member totals user inputs, the damage-formula/condition lore, and the HP-scaled
   characters are restated in this document instead of pointing at an intent doc.
 - **[Changed]** the `DesignGoals.md` links/citations removed: document header, the §8 project

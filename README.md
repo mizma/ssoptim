@@ -4,7 +4,7 @@ Stella Sora Party build optimization tool
 
 `ssoptim` optimizes **talent level distribution** for a fixed party composition
 (one main character + two support characters) when a fixed number of talent levels
-is available. Because party composition changes the optimization target drastically,
+is available. Because party composition changes the optimization objective drastically,
 the objective ("what number are we maximizing?") is a **pluggable calculation module**
 — built-in defaults plus user-supplied modules that can be dropped in next to an
 installed copy of the tool without rebuilding it.
@@ -44,13 +44,13 @@ loaded by path:
 
 ~~~console
 > ssoptim optimize --config ./my_party.yml -t 65 -f ./plugins/simple_dps.py:objective \
->                  --scenario DEF=350 --scenario RES=570 --target-opts uptime_fraction=0.6 \
+>                  --scenario DEF=350 --scenario RES=570 --objective-opts uptime_fraction=0.6 \
 >                  --show-params -o result.yml
 ~~~
 
 * -c, --config CFG
     * CFG: Path to Configuration File (default: ssoptim.yml) — carries party, budget,
-      target and restrictions
+      objective and restrictions
 * -m, --main MAIN
     * MAIN: main character name (overrides `party.main`)
 * -s, --sub SUB
@@ -58,8 +58,8 @@ loaded by path:
 * -t, --total-levels N
     * N: total talent levels available to distribute (mandatory, unless given in the
       config file)
-* -f, --target SPEC
-    * SPEC: optimization target module/function — `auto_attack` (default), a dotted
+* -f, --objective SPEC
+    * SPEC: optimization objective module/function — `auto_attack` (default), a dotted
       module path `pkg.mod:func`, or a file path `./plugins/my_calc.py:func`
 * --char PATH
     * PATH: character data file or directory; repeatable, searched before the bundled
@@ -74,7 +74,7 @@ loaded by path:
 * --scenario KEY=VAL
     * KEY=VAL: per-key override of the enemy profile (`DEF`, `RES`, `PEN`, `VUL`,
       `enemyBreakStatus`, `resilienceBreakDmg`, …); repeatable
-* --target-opts KEY=VAL
+* --objective-opts KEY=VAL
     * KEY=VAL: free-form plugin-specific constants handed to the objective module
       (e.g. `uptime_fraction=0.6` for a condition-gated buff); repeatable
 * --show-params
@@ -113,7 +113,7 @@ party:
   sub2: "Char C"
 data_dirs:
   - ./characters
-target: auto_attack
+objective: auto_attack
 total_level: 65
 total_level_mode: exact
 scenario:                 # enemy profile; unspecified keys keep the kernel defaults
@@ -124,7 +124,7 @@ scenario:                 # enemy profile; unspecified keys keep the kernel defa
   VUL: 0
   enemyBreakStatus: false
   resilienceBreakDmg: 1.5
-target_opts:              # free-form constants for the objective module
+objective_opts:          # free-form constants for the objective module
   uptime_fraction: 0.6
 restrictions:
   main:
@@ -203,6 +203,8 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
       Atk_multiplier:
         1: 0.045
         6: 0.18                   # levels 2-5 interpolated evenly
+        duration: { 1: 10, 4: 12 } # buff uptime in seconds (same interpolation rule)
+        activation: main_skill     # which skill's use grants it
   talents_sub:                    # used when the character is in sub1/sub2
     - talent_name: "…"
 ~~~
@@ -218,7 +220,15 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
 * `cd` (active skills, from the game's character spec) and `loop_time` (auto skill,
   measured from gameplay/video analysis) are seconds of **data**: the tool validates and
   forwards them, and the objective module decides how they become DPS. They are optional;
-  without them a DPS-minded target falls back to per-hit damage and says so with `-v`.
+  without them a DPS-minded objective falls back to per-hit damage and says so with `-v`.
+* Buff/debuff values may carry the reserved keys `duration` (seconds, sparse and interpolated
+  like the level values) and `activation` (strictly `auto_skill`/`main_skill`/`sub_skill`/`ult_skill`)
+  inside the same map as the level keys — `Atk_multiplier: { 1: 0.045, 6: 0.18, duration: { 1: 10, 4: 12 }, activation: main_skill }`
+  means 10 s at levels 1-3 and 12 s at 4-6, granted by the main skill. Skills use the same
+  pair on their `buf`/`debuf` maps. The two keys are convention metadata: the loader validates
+  them and keeps them **out** of the aggregated parameter map, and a generic objective derives a
+  gated buff's uptime as `min(duration, period) / period` for the activating skill — the
+  `objective_opts.uptime_fraction` fallback is only needed where the pair is absent.
 * A skill may split into `sources:`, each with its own damage type, its own `cd`/`loop_time`
   and optional `dot: true`; each source is damage-calculated separately with only the buffers
   that apply to it and the results are added. A skill with a single portion may still use the
@@ -234,7 +244,7 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
 ### Output
 
 ~~~yaml
-target: auto_attack
+objective_plugin: auto_attack
 total_level: 65
 objective: 1234567        # value the objective module returned for this distribution
 feasible: true
@@ -253,9 +263,10 @@ party:
     talent_levels: { … }
 ~~~
 
-With `-vv`, the aggregated parameter dictionary (every talent key summed at the chosen
-levels, including character-specific keys) is appended as `aggregated_params:`, together with
-the effective `scenario:` values.
+`objective_plugin:` names the plugin spec that was run; `objective:` is the value that plugin
+returned. With `-vv`, the aggregated parameter dictionary (every talent key summed at the chosen
+levels, including character-specific keys) is appended as `aggregated_params:`, together with the
+effective `scenario:` values.
 
 ### Objective plugins
 
@@ -278,13 +289,17 @@ contract): `ctx["members"]["main"|"sub1"|"sub2"]` (full character data, incl. `H
 mechanics, skill blocks with `cd`/`loop_time`/`sources`, the talent set in use),
 `ctx["members"][slot].talent_params` (per-talent `talent → {key: value}` at the current levels —
 what a timeline-style plugin needs to attribute a buff), `ctx["aggregated"]` (the summed map),
-`ctx["scenario"]` (enemy profile), and `ctx["target_opts"]` (plugin knobs from `--target-opts`).
+`ctx["scenario"]` (enemy profile), `ctx["objective_opts"]` (plugin knobs from `--objective-opts`), and
+`ctx["verbose"]` / `ctx["log"]` (the run's `-v` count, and the `pout` printer already bound to it).
 Plugins may still bind their own extra constants by closure or `functools.partial`.
 
 Helpers the tool provides: `resolve_talent_params(x, ctx)` (the level-resolved view above),
 `aggregate_params(x)` (sum of all same-key talent parameters at the chosen levels),
-`resolve_talent_value(talent, level)` (interpolated level value), and the `damage` kernel
-(`calculate_damage`, `def_amend`, `res_amend`, `skill_percent_to_amend`).
+`resolve_talent_value(talent, level)` (interpolated level value), the `damage` kernel
+(`calculate_damage`, `def_amend`, `res_amend`, `skill_percent_to_amend`), and `pout(msg, verbose,
+level)` — the click-cutter printer, also reachable as `ctx["log"]` with the verbosity already
+bound. Plugin progress output must go through it, so `-v` warnings (`Level.WARNING`) and `-vv`
+per-evaluation values (`Level.DEBUG`) mean the same thing to the tool and to your module.
 
 Two rules matter when you write one (R-33/R-34): the damage kernel **applies every argument
 you give it** and knows nothing about which talent keys belong to which skill, so the plugin
@@ -292,7 +307,7 @@ picks the argument set per damage source; and the plugin — not the kernel — 
 buffers, folding `Atk_multiplier`/`Atk_absMod` and any other status buff into the attacker's
 effective `Atk` **before** the call.
 
-Reference plugin for the documented default target (`auto_attack`):
+Reference plugin for the documented default objective (`auto_attack`):
 
 ```python
 from ssoptim.ssoptim.damage import calculate_damage, skill_percent_to_amend
@@ -324,20 +339,23 @@ Custom plugins live outside the package and are referenced by spec:
 
 ~~~console
 > ssoptim optimize -f ./plugins/my_calc.py:objective -c my_party.yml
-> ssoptim optimize -f my_targets.iron_maiden:dps -c my_party.yml
+> ssoptim optimize -f my_objectives.iron_maiden:dps -c my_party.yml
 ~~~
 
 ## Known Issues
 
 * The tool is pre-release: the bundled character data set is incomplete, and built-in
   objectives other than `auto_attack` are planned for later 0.x releases. The DPS sample
-  (`plugins/simple_dps.py`) ships as an external plugin, not as a built-in target.
+  (`plugins/simple_dps.py`) ships as an external plugin, not as a built-in objective.
 * Timing data (`cd`, `loop_time`) is authored from the game spec or video analysis and is the
-  data author's responsibility; where it is missing, DPS-minded targets fall back to per-hit
+  data author's responsibility; where it is missing, DPS-minded objectives fall back to per-hit
   damage and warn with `-v`.
 * 0.1.0 ships no shared timeline helper and no condition expression: talent gating and
-  rotation assumptions are approximated inside each plugin, using the per-talent buffers and
-  timing in `ctx`.
+  rotation assumptions are approximated inside each plugin, using the per-talent buffers, the
+  gating pair (`duration`/`activation`) and timing in `ctx`.
+* TODO (blocks the bundled character data): the reference data extracted from theチネセ,アヤメ,
+  テレサ wiki pages must be checked into `wiki_data/` first — the repository holds that dump, so
+  neither the build nor the tool fetches from the wiki.
 * The buffer-key convention (`Atk_multiplier`, `slotMarkDmg`, …) is documented, not enforced;
   unknown keys are passed to the plugin untouched, and the damage kernel applies exactly the
   arguments the plugin hands it.
@@ -400,7 +418,7 @@ ssoptim/                 # repo root (project "SSOptim")
         ├── talent.py    # interpolation + per-talent/aggregated buffers
         ├── damage.py    # damage kernel (applies every argument it is given)
         ├── plugins.py   # objective-module resolution + data context (ctx)
-        ├── targets/     # built-in objectives (auto_attack …)
+        ├── objectives/  # built-in objectives (auto_attack …)
         ├── constraints.py
         ├── optimize.py  # SciPy Differential Evolution driver
         └── report.py    # YAML/console rendering

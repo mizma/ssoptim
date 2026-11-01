@@ -210,7 +210,9 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
 ~~~
 
 * Level-keyed values are sparse; intermediate levels are inferred as an even step
-  between the declared anchors, and level 0 adds nothing.
+  between the declared anchors, and level 0 adds nothing. Level 0 counts as an anchor, so a map
+  with one anchor ramps up from 0; levels **above** the last declared anchor keep that anchor's
+  value (no extrapolation) — e.g. `{6: 0.10}` is ≈0.0167 at level 1 … 0.10 at level 6.
 * Parameter names are free-form. Character-specific keys (e.g. a signature-mechanic
   value) are allowed; they are passed through to the objective module untouched.
   A documented key convention maps the common buffers to formula arguments
@@ -353,9 +355,10 @@ Custom plugins live outside the package and are referenced by spec:
 * 0.1.0 ships no shared timeline helper and no condition expression: talent gating and
   rotation assumptions are approximated inside each plugin, using the per-talent buffers, the
   gating pair (`duration`/`activation`) and timing in `ctx`.
-* TODO (blocks the bundled character data): the reference data extracted from theチネセ,アヤメ,
-  テレサ wiki pages must be checked into `wiki_data/` first — the repository holds that dump, so
-  neither the build nor the tool fetches from the wiki.
+* The bundled character data is authored from a **reference-only** extract of theチトセ,アヤメ and
+  テレサ wiki pages: the extract lives in the workspace under `wiki_data/` and is *not* committed
+  (git-ignored, never read by the tool or the build), so the committed artifact is the authored
+  YAML in the installed package — the tool stays offline and self-contained either way.
 * The buffer-key convention (`Atk_multiplier`, `slotMarkDmg`, …) is documented, not enforced;
   unknown keys are passed to the plugin untouched, and the damage kernel applies exactly the
   arguments the plugin hands it.

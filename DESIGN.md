@@ -127,7 +127,7 @@ tests, and `CHANGES.md` entries.
 | ID | Requirement |
 | --- | --- |
 | R-18 | Character definitions are YAML files keyed by character name (`stats`, `auto_skill`, `main_skill`, `sub_skill`, `ult_skill`, `talents_main`, `talents_sub`). |
-| R-19 | A talent entry maps parameter key → `{level: value}`. Only levels that change need listing; **intermediate levels are interpolated evenly** between the two declared anchors (e.g. keys 1 and 6 imply a constant step for 2–5; level 0 contributes nothing). |
+| R-19 | A talent entry maps parameter key → `{level: value}`. Only levels that change need listing; **intermediate levels are interpolated evenly** between the two declared anchors (e.g. keys 1 and 6 imply a constant step for 2–5; level 0 contributes nothing). A map with a single anchor keeps the same rule against the implicit `(0, 0)` origin, and **levels above the last declared anchor keep that anchor's value** (no extrapolation) — the rule is fixed here so sparse authoring stays deterministic (§11 item 22). |
 | R-20 | Talent parameter keys are free-form strings; they are *summed* across all owned talents at their chosen levels, including character-specific keys unknown to the damage kernel. |
 | R-21 | An objective plugin is a callable `f(x, ctx) -> float`. `x` is the SciPy-style flat level vector (R-08); `ctx` is the **tool-provided** data context of R-37 (party characters with full stats/skills/talents, resolved levels and buffers, scenario). The plugin author may still bind extra constants by closure/partial, but must not have to load character data itself. |
 | R-22 | Plugin references accept three forms: built-in short name (`auto_attack`), dotted module path (`pkg.mod:func`), and file path (`./plugins/my_calc.py:func`). Loading must work at runtime against a `pipx`/`uv tool install`ed copy — no package rebuild. |
@@ -157,7 +157,7 @@ tests, and `CHANGES.md` entries.
 | R-41 | A party must consist of three **distinct** characters; the same character name in two slots is a loader error (exit 2). |
 | R-42 | The `-v/--verbose` **count** follows the same precedence as every other option (CLI > config) and is handed to plugins inside `ctx`: `ctx["verbose"]` (the integer count) and `ctx["log"]` — that `pout` **curried** with the run's verbosity already bound. The tool keeps the click-cutter template's `pout(msg, Verbose, level, newline)` (+ `Level` IntEnum: DEBUG shown at `Verbose >= 2` on stdout, WARNING at `>= 1` on stderr, INFO/ERROR/CRITICAL always) as the single definition of verbosity, and plugin-side progress output must go through `pout`/`ctx["log"]` so it follows the user's `-v`: `Level.WARNING` for "data missing, falling back" notices and `Level.DEBUG` for per-evaluation values — the R-28 levels, one definition shared by tool and plugin. |
 | R-43 | Buff/debuff values carry **`duration`** and **`activation`** as reserved keys inside the same map as the level keys: `Atk_multiplier: { 1: 0.15, 6: 0.7, duration: { 1: 10, 4: 12 }, activation: main_skill }`. `duration` is in **seconds**, sparse, and interpolated by the R-19 rule (10 s for levels 1–3, 12 s for 4–6); `activation` is strictly one of the four skill keys (`auto_skill`/`main_skill`/`sub_skill`/`ult_skill`, R-40) and names the skill whose use grants the buff. Skills declare the same pair on their `buf`/`debuf` maps inside a `sources[]` entry (R-32). The loader validates the pair and **excludes both keys from aggregation** (R-20, R-35): they are convention metadata, never damage-formula keys. |
-| R-44 | The bundled reference character set (and the data behind the sample objective) is authored from **user-extracted** wiki data taken from the Stella Sora wiki pages forチトセ, アヤメ, テレサ; the extract is checked into the repo (`wiki_data/`) so the tool and the build never fetch from the wiki (TODO: the extract must land before M7 data authoring — §9). |
+| R-44 | The bundled reference character set (and the data behind the sample objective) is authored from **user-extracted** wiki data taken from the Stella Sora wiki pages forチトセ, アヤメ, テレサ; the extract is kept **in the repo workspace only as authoring source** (`wiki_data/`, git-ignored — see the §8/§9/§11 amendment below), so the tool and the build never fetch from the wiki and the wheel's provenance is the authored YAML itself. |
 
 ### CLI / IO
 
@@ -237,6 +237,11 @@ then fall back to per-hit damage and say so with `-v`); when present, `duration`
 > 0 (bare number or sparse level map) and `activation` must be one of the four skill keys.
 A `sources[]` entry must have a non-empty `damage` map, may carry `buf`/`debuf` maps with
 the same pair, and needs a label-unique `name` when named (R-30, R-32, R-43).
+
+Interpolation of a sparse level map (R-19) is fully pinned: the origin `(0, 0)` counts as an
+anchor, values between two anchors change in an even step, and values **after the last anchor
+repeat it** — so `{6: 0.10}` means 0.0167 at level 1 rising to 0.10 at level 6 and 0.10 above,
+and `{1: 0.15}` means 0.15 at every level at or above 1.
 
 Role semantics of the four skill keys are fixed data conventions, **not extra keys** (R-40):
 the `main` slot may use `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` may use
@@ -549,9 +554,11 @@ ssoptim optimize [-c CFG] [-m MAIN] [-s SUB1 ...] [-t N] [-f OBJECTIVE]
 | `-h/--help`, `--version` | — | version from `ssoptim.__version__` |
 
 Precedence: CLI > `--restrictions` file > `--config` file > built-in defaults.
-Sub-commands other than `optimize` (e.g. `chars`, `plugins`, `eval`) are **planned, not in 0.1.0**;
-the single-command `simple` form of click-cutter is therefore used, with `optimize` as the
-named verb for clarity once sub-commands land.
+Sub-commands other than `optimize` (e.g. `chars`, `plugins`, `eval`) are **planned, not in 0.1.0**.
+The command shape is nevertheless a click **group with exactly one command**, `optimize`, so the
+verb is live in 0.1.0 and every README invocation (`ssoptim optimize …`) runs verbatim; the
+template's verb-less `simple` form would have contradicted the README, which is the
+semver-pinned interface surface (§11 item 23; the later sub-commands just add sibling commands).
 
 Exit codes:
 
@@ -584,8 +591,8 @@ ssoptim/                     # repo root = project "SSOptim"
 ├── pyproject.toml                   # setuptools + setuptools-scm, [project.scripts] ssoptim = "ssoptim.cli:main"
 ├── tasks.py                         # invoke tasks mirroring the Makefile
 ├── stella_sora_damage.py            # scratch reference; vendored into the package at M2, then deleted
-├── wiki_data/                       # TODO (blocks M7): user-extracted reference dump from theチトセ/アヤメ/テレサ
-│                                    #   wiki pages (R-44); documentation source only, never read at runtime
+├── wiki_data/                       # reference-only wiki extract (R-44): git-ignored, never committed,
+│                                    #   never read at build or runtime; authoring source for ssoptim/characters/
 ├── characters/          # user data set (searched by the tool); <name>.yml
 ├── plugins/             # example/custom objective plugins; simple_dps.py is the shipped DPS sample (§6.3)
 ├── tests/               # pytest suite + fixtures tests/data/*.yml (excluded from wheel)
@@ -642,14 +649,16 @@ Each milestone is independently testable and lands with docs/changelog updates.
 | M4 | `constraints.py` bounds/constraint generation | generated matrices verified by direct check of R-04, R-13, R-14, R-15 on fixtures; infeasible inputs flagged (exit 3); duplicate party flagged (exit 2, R-41) |
 | M5 | `optimize.py`: `differential_evolution` + verify/repair | on the fixture, the optimum matches the brute-force enumeration of the reduced (2 chars, 4 sub levels) space; all constraints hold |
 | M6 | `cli.py` + `report.py`: options (incl. `--scenario`, `--objective-opts`), precedence, YAML out, exit codes | README's documented invocation runs end-to-end and writes §4.3 YAML; precedence tests: CLI overrides config, `--scenario DEF=…` overrides the `scenario:` block; `--show-params` prints the aggregated map and the effective scenario (R-36) |
-| M7 | Packaging/CLI polish, built-in char data set (authored from the `wiki_data/` dump of R-44 — see the TODO below the table), `plugins/` examples, pytest suite green, `tasks.py`/Makefile wired | `uv build` + `pipx install ssoptim` yields a working `ssoptim optimize …` with `--config` defaults; the bundled set loads and round-trips through the §4.1 validation rules |
+| M7 | Packaging/CLI polish, built-in char data set (authored from the `wiki_data/` reference extract of R-44), `plugins/` examples, pytest suite green, `tasks.py`/Makefile wired | `uv build` + `pipx install ssoptim` yields a working `ssoptim optimize …` with `--config` defaults; the bundled set loads and round-trips through the §4.1 validation rules |
 | M8 | `PLUGINS.md`: detailed plugin development guide (separate document) — objective contract and "bigger is better" convention (R-21/Q-1), flat `x` vector layout (R-08), the `ctx` contract and level-resolution helpers (R-37/R-38, incl. the per-talent breakdown), the buffer-key vocabulary (R-35) and gated-value conventions (R-39), scenario inputs (R-36), **kernel/buffer ownership** (R-33/R-34: the kernel applies everything it is given; the plugin selects keys and applies Atk/status buffs first), skill timing (R-30/R-31), the **duration/activation gating convention** (R-43: reserved keys inside the level map, `activation` as one of the four skill keys, and the `min(duration, period)/period` uptime derivation), plugin-side progress output through `pout`/`ctx["log"]` (R-42), role availability (R-40), multi-source skills (R-32), the §6.2 DPS recipe with a hand-rolled timeline approximation, worked `auto_attack` and `simple_dps` walkthroughs, plugin exception → exit 4 behaviour, solver-knob tuning | every code snippet in `PLUGINS.md` runs verbatim against the M3 fixture party; `ssoptim optimize -f ./plugins/simple_dps.py:objective` matches the documented value; README §"Objective plugins" links to it |
 | M9+ | Extra built-in objectives (single skill, ult, cooldown-aware `dps` promoted from `simple_dps`, §12 Q-4 generalization), planned sub-commands (`chars`, `plugins`, `eval`) | each new objective documented in `PLUGINS.md` §"Built-in objectives" and registered in `objectives/`; `PLUGINS.md` extended in place |
 
-**TODO (blocks M7 data authoring, R-44):** the reference data extracted from theチトセ、アヤメ、テレサ
-wiki pages must be checked into `wiki_data/` first. The repository holds that dump; neither the
-build nor the tool ever fetches from the wiki. Until it lands, M7 ships the §4.1-shaped fixture
-characters only.
+**Data-authoring note (was the M7 blocker, R-44):** theチトセ、アヤメ、テレサ extract exists in the
+workspace under `wiki_data/`. It is **not** checked in (the user keeps it as reference material;
+`.gitignore` lists `wiki_data/`), so the wheel's provenance is the authored YAML in
+`ssoptim/characters/` rather than a committed dump. Neither the build nor the tool ever reads
+`wiki_data/`, which is what keeps M7 self-contained: the milestone authors the bundled set from
+that extract and commits only the resulting character files.
 
 Testing strategy: pure functions at `data`/`talent`/`constraints` boundaries (no scipy needed),
 scipy driver tested against a deterministic exhaustive reference for a reduced fixture,
@@ -746,10 +755,22 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
     `pout`/`Level` in `ssoptim.py` as the single definition and injecting both the count (`ctx["verbose"]`)
     and the curried logger (`ctx["log"]`) into the per-candidate `ctx` of R-37 gives plugins the same
     levels as the tool (R-28's `-v`/`-vv`) at no per-evaluation cost.
-21. **Wiki data extracted into the repo, never fetched** (R-44): theチトセ/アヤメ/テレサ pages are the
-    authoring source for the bundled set and for the sample objective's model; the user-extracted dump is
-    checked into `wiki_data/` (TODO: it must land before M7) so the wheel stays self-contained, the build
-    stays offline, and provenance stays reviewable in git.
+21. **Wiki data kept as reference, never fetched** (R-44): theチトセ/アヤメ/テレサ pages are the
+     authoring source for the bundled set and for the sample objective's model. The user keeps the
+     extracted dump in the workspace under `wiki_data/` as **reference only** — it is git-ignored and
+     never committed — so the wheel's committed artifact is the authored YAML, while the build and the
+     tool still never touch the wiki. Reviewability of provenance is traded for a lean repo; the
+     requirement is otherwise unchanged (offline build, self-contained wheel).
+22. **Interpolation pinned at both ends** (R-19): sparse maps are the authoring convenience of the
+     wiki's "X〜Y" (level 1〜level 6) notation, so a single-anchor map needs a defined reading. The
+     origin `(0, 0)` is an anchor (level 0 contributes nothing, R-05/R-19) and levels past the last
+     declared anchor repeat that anchor. Both rules are stated in §4.1 so fixture data, the loader and
+     the plugins agree on one table without extrapolating past authored evidence.
+23. **Click group with one command, not the verb-less simple form** (§7): README's Usage section is the
+     semver-pinned interface surface and every example says `ssoptim optimize …`, so 0.1.0 registers
+     exactly one command under the group. The template's `cli_type = simple` would have made the
+     documented invocations fail; the planned `chars`/`plugins`/`eval` sub-commands then only add
+     sibling commands to the same group.
 
 ## 12. Open questions — answers recorded (see §11 items 10–21 for rationale)
 

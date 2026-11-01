@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools >= 77.0.3", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ssoptim"
+authors = [
+    { name = "aoi mizma", email = "aoi.mizma@path-works.net" },
+]
+description = "Stella Sora party build optimization tool"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+keywords = ["stella sora", "talent optimization", "cli"]
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Environment :: Console',
+    'Intended Audience :: End Users/Desktop',
+    'Natural Language :: English',
+    'Operating System :: MacOS :: MacOS X',
+    'Operating System :: Microsoft :: Windows :: Windows 10',
+    'Operating System :: POSIX :: Linux',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.12',
+    'Topic :: Utilities',
+]
+dependencies = [
+    'click>=8.1,<9',
+    'PyYAML>=6,<7',
+    'scipy>=1.11,<2',
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["pyinstaller", "build", "twine", "pytest", "invoke"]
+
+[project.urls]
+homepage = "https://github.com/koma75/SSOptim/"
+documentation = "https://github.com/koma75/SSOptim/blob/main/README.md"
+repository = "https://github.com/koma75/SSOptim.git"
+changelog = "https://github.com/koma75/SSOptim/blob/main/CHANGES.md"
+
+[project.scripts]
+ssoptim = "ssoptim.cli:main"
+
+[tool.setuptools.packages.find]
+exclude = ["build", "tests", "characters", "plugins", "wiki_data", "dist"]
+
+[tool.setuptools.dynamic]
+version = { attr = "ssoptim.__version__" }
+
+[tool.setuptools_scm]
+write_to = "ssoptim/_version.py"

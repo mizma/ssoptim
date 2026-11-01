@@ -399,7 +399,9 @@ Shared helpers every plugin should use (all read the tool-built `ctx`; nothing r
   breakdown (R-38) — the breakdown is what timeline-style plugins need, to attribute a
   buff to the talent that granted it (the summed map alone cannot say that).
 - `aggregate_params(x)` → `{key: Σ value}` over all owned talents at the chosen levels,
-  including character-specific keys (R-20); identical to `ctx["aggregated"]`.
+  including character-specific keys (R-20); identical to `ctx["aggregated"]`. The helpers take
+  an optional `ctx` and otherwise read the **active candidate context** (`plugins.ACTIVE`), which
+  is what keeps the documented one-argument call form working inside a plugin (§11 item 25).
 - `resolve_talent_value(talent, level)` → interpolated value (R-19).
 - `ctx["members"][slot]` for `main`, `sub1`, `sub2` → the full character object: `stats`
   (incl. `HP`/`DEF` for HP-scaled mechanics), skill blocks with `cd`/`loop_time`/`sources`,
@@ -781,8 +783,17 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
       last-anchor-at-or-below and only the *value* maps keep the even step. Levels below the
       first band take that band — a gated buff exists at every owned level, and 0 s would mean
       "no buff". R-43, §4.1 and §10 now say "level bands" so data, loader and plugins agree.
+ 25. **One-argument plugin helpers read the active candidate context** (§6): R-38 fixes the
+      contract as `f(x, ctx)` plus helpers a plugin calls as `aggregate_params(x)` /
+      `resolve_talent_params(x)`, and the README/PLUGINS snippets use that one-argument form.
+      `plugins.py` therefore keeps the candidate context in `plugins.ACTIVE`, set on the
+      per-candidate `resolve_candidate(x, ctx)` call, and both helpers take an optional
+      `ctx` (an explicit one always wins). Single-threaded by construction - the SciPy
+      driver evaluates one candidate at a time - so no per-evaluation closure plumbing or
+      extra arguments are needed, and the plugin still never maps `x` positions to talents
+      itself (R-37, R-38).
 
-## 12. Open questions — answers recorded (see §11 items 10–24 for rationale)
+## 12. Open questions — answers recorded (see §11 items 10–25 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |

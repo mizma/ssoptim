@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2026 aoi mizma <aoi.mizma@path-works.net>
+# SPDX-License-Identifier: MIT
+
 """
 Stella Sora damage calculator.
 
@@ -27,6 +32,14 @@ The formula uses (skillPercentAmend + talentGroupPercentAmend) * 0.0001 / 100
 as the fraction of Atk, so a skill that deals 250% Atk (fraction 2.5) has
 skillPercentAmend = 2_500_000, i.e. percent * 10000.
 Use `skill_percent_to_amend(250)` to convert from a plain percentage.
+
+Vendoring note (R-24, 11 item 6): this is a faithful transcription of the
+scratch reference `stella_sora_damage.py`, deleted once vendored, so the
+wheel stays self-contained. The kernel is apply-everything (R-33): it
+consumes every argument it is handed and applies no policy about which
+talent keys belong to which skill or damage source; choosing the argument
+set and pre-buffing the attacker's status is the objective module's job
+(R-32/R-34, PLUGINS.md).
 """
 
 from __future__ import annotations
@@ -237,13 +250,14 @@ def calculate_damage(
         return max(1, int(damage))
     return damage
 
+def def_amend_table():
+    """(DEF, gist defAmend) sanity pairs from the scratch reference."""
+    return [(500, 0.5), (350, 0.60227272727), (199, 0.73788198103)]
 
-if __name__ == "__main__":
-    # Sanity checks against the examples in the gist
-    for d, expected in [(500, 0.5), (350, 0.60227272727), (199, 0.73788198103)]:
-        print(f"DEF {d}: defAmend = {def_amend(d):.11f} (gist: {expected})")
 
-    for res, expected in [
+def res_amend_table():
+    """(RES, gist erAmend) sanity pairs from the scratch reference."""
+    return [
         (30, 0.9964),
         (140, 0.9216),
         (250, 0.75),
@@ -252,20 +266,19 @@ if __name__ == "__main__":
         (570, 0.54783073161),
         (750, 0.4),
         (2000, 0.01),
-    ]:
-        print(f"RES {res}: erAmend = {res_amend(res):.11f} (gist: {expected})")
+    ]
 
-    print(
-        f"VUL 0.05, Effective_RES -60: erAmend = {res_amend(RES=-60, VUL=0.05):.4f} (gist: 1.032)"
-    )
 
-    print(
-        "Example damage:",
-        calculate_damage(
-            Atk=3000,
-            skillPercentAmend=skill_percent_to_amend(250),
-            DEF=350,
-            RES=570,
-            critDmg=1.5,
-        ),
-    )
+def kernel_defaults():
+    """The kernel's own neutral enemy defaults, as scenario input defaults (R-36)."""
+    return {
+        "DEF": 500.0,
+        "RES": 750.0,
+        "res_table": {},
+        "PEN": 0.0,
+        "VUL": 0.0,
+        "DEF_Ignore": 0.0,
+        "DEF_Penetrate": 0.0,
+        "enemyBreakStatus": False,
+        "resilienceBreakDmg": DEFAULT_RESILIENCE_BREAK_DMG,
+    }

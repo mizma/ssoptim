@@ -1,8 +1,8 @@
 # SSOptim — Design Specification
 
 Status: **pre-implementation design spec** (version 0.1.0 T.B.D.)
-Self-contained: this document restates the game-spec facts it depends on (§1.1) · damage reference: [DamageCalculationParameters.md](DamageCalculationParameters.md), [stella_sora_damage.py](stella_sora_damage.py)
-Project structure basis: [click-cutter](https://github.com/koma75/click-cutter) (Click CLI cookiecutter template, `cli_type = simple`, `use_config_yaml = Yes`)
+Self-contained: this document restates the game-spec facts it depends on (§1.1) · damage reference: [DamageCalculationParameters.md](DamageCalculationParameters.md), [stella_sora_damage.py](stella_sora_damage.py) (scratch reference, vendored into `ssoptim/ssoptim/damage.py` and deleted at M2)
+Project structure basis: [click-cutter](https://github.com/koma75/click-cutter) (Click CLI cookiecutter template, `cli_type = simple` → a one-command group in 0.1.0 per §11 item 23, `use_config_yaml = Yes`)
 
 This document is the streamlined, decision-complete plan for building `ssoptim`.
 It restates the goals as testable requirements, fixes the data/plugin/CLI contracts,

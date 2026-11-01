@@ -95,7 +95,7 @@ Precedence: command-line options override the `--restrictions` file, which overr
 | code | meaning |
 | --- | --- |
 | 0 | optimum found, constraints satisfied |
-| 2 | usage / config error (missing party, missing budget, bad YAML) |
+| 2 | usage / config error (missing party, missing budget, bad YAML, unknown or out-of-range restriction) |
 | 3 | input constraints are infeasible (budget below the specified minimums, etc.) |
 | 4 | objective module could not be loaded or raised an error |
 | 5 | solver returned no feasible point after all restarts |

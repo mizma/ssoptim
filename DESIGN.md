@@ -570,7 +570,7 @@ Exit codes:
 | Code | Meaning |
 | --- | --- |
 | 0 | feasible optimum written |
-| 2 | usage/config error (missing party, missing budget, unparseable YAML, duplicate party characters R-41) |
+| 2 | usage/config error (missing party, missing budget, unparseable YAML, duplicate party characters R-41, unknown or out-of-range restriction R-15/R-16) |
 | 3 | infeasible constraint set (e.g. budget < Σ mins, or mins > maxes) |
 | 4 | plugin load failure / plugin raised |
 | 5 | solver found no feasible point after `runs` restarts |

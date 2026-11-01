@@ -223,8 +223,10 @@ Character stats, skills and talents are plain YAML, one top-level key per charac
   measured from gameplay/video analysis) are seconds of **data**: the tool validates and
   forwards them, and the objective module decides how they become DPS. They are optional;
   without them a DPS-minded objective falls back to per-hit damage and says so with `-v`.
-* Buff/debuff values may carry the reserved keys `duration` (seconds, sparse and interpolated
-  like the level values) and `activation` (strictly `auto_skill`/`main_skill`/`sub_skill`/`ult_skill`)
+* Buff/debuff values may carry the reserved keys `duration` (seconds, sparse and
+  read as **level bands** — the last declared band at or below the level, so
+  `{ 1: 10, 4: 12 }` is 10 s at levels 1-3 and 12 s at 4-6) and `activation` (strictly
+  `auto_skill`/`main_skill`/`sub_skill`/`ult_skill`)
   inside the same map as the level keys — `Atk_multiplier: { 1: 0.045, 6: 0.18, duration: { 1: 10, 4: 12 }, activation: main_skill }`
   means 10 s at levels 1-3 and 12 s at 4-6, granted by the main skill. Skills use the same
   pair on their `buf`/`debuf` maps. The two keys are convention metadata: the loader validates

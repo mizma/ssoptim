@@ -1,0 +1,5 @@
+# Deliberately unparseable fixture: exercises the R-29 exit-2 parse error.
+party:
+  main: "Char A"
+ sub1: "Char B"
+ - [

@@ -1,0 +1,36 @@
+party:
+  main: "Char A"
+  sub1: "Char B"
+  sub2: "Char C"
+data_dirs:
+  - ./tests/data
+objective: auto_attack
+total_level: 30
+total_level_mode: exact
+scenario:
+  DEF: 350
+  RES: 570
+  res_table: { Lux: 250, default: 750 }
+  PEN: 0
+  VUL: 0
+  enemyBreakStatus: false
+  resilienceBreakDmg: 1.5
+objective_opts:
+  uptime_fraction: 0.6
+restrictions:
+  main:
+    min: 20
+    talent_levels:
+      - { name: "Core Echo", min: 1 }
+      - { name: "Core Mark", min: 1 }
+      - { name: "Sub Signature", max: 0 }
+  sub1:
+    min: 5
+  sub2:
+    min: 5
+solver:
+  maxiter: 30
+  popsize: 8
+  runs: 1
+  seed: 1
+  polish: false

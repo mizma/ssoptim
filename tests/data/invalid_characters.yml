@@ -1,0 +1,48 @@
+# Loader-error fixture: one violation per character (R-03/R-15 bounds, R-43 pair).
+Bad Short Set:
+  stats: { Atk: 1000 }
+  auto_skill:
+    damage: { elemLuxDmg: { skillPercentAmend: 1.00 } }
+  talents_main:
+    - { talent_name: "Only One", core_talent: true }
+  talents_sub:
+    - { talent_name: "Also One", core_talent: true }
+
+Bad Level Key:
+  stats: { Atk: 1000 }
+  auto_skill:
+    damage: { elemLuxDmg: { skillPercentAmend: 1.00 } }
+  talents_main:
+    - { talent_name: "C1", core_talent: true, Atk_multiplier: { 1: 0.1, 7: 0.7 } }
+    - { talent_name: "C2", core_talent: true }
+    - { talent_name: "C3", core_talent: true }
+    - { talent_name: "C4", core_talent: true }
+    - { talent_name: "S1", core_talent: false }
+    - { talent_name: "S2", core_talent: false }
+    - { talent_name: "S3", core_talent: false }
+    - { talent_name: "S4", core_talent: false }
+    - { talent_name: "S5", core_talent: false }
+    - { talent_name: "S6", core_talent: false }
+    - { talent_name: "S7", core_talent: false }
+    - { talent_name: "S8", core_talent: false }
+    - { talent_name: "S9", core_talent: false }
+    - { talent_name: "S10", core_talent: false }
+    - { talent_name: "S11", core_talent: false }
+    - { talent_name: "S12", core_talent: false }
+  talents_sub:
+    - { talent_name: "T1", core_talent: true }
+    - { talent_name: "T2", core_talent: true }
+    - { talent_name: "T3", core_talent: true }
+    - { talent_name: "T4", core_talent: true }
+    - { talent_name: "U1", core_talent: false }
+    - { talent_name: "U2", core_talent: false }
+    - { talent_name: "U3", core_talent: false }
+    - { talent_name: "U4", core_talent: false }
+    - { talent_name: "U5", core_talent: false }
+    - { talent_name: "U6", core_talent: false }
+    - { talent_name: "U7", core_talent: false }
+    - { talent_name: "U8", core_talent: false }
+    - { talent_name: "U9", core_talent: false }
+    - { talent_name: "U10", core_talent: false }
+    - { talent_name: "U11", core_talent: false }
+    - { talent_name: "U12", core_talent: false }

@@ -156,7 +156,7 @@ tests, and `CHANGES.md` entries.
 | R-40 | Role semantics of the existing skill keys (no extra keys): the `main` slot uses `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` use `sub_skill` + `ult_skill` and **never `main_skill`**. The special case is `auto_skill`: some characters act from the sub slot with their auto skill (currently the only such role exception), which is plugin-side logic; hence `loop_time` is authored for every character's `auto_skill` (R-30). |
 | R-41 | A party must consist of three **distinct** characters; the same character name in two slots is a loader error (exit 2). |
 | R-42 | The `-v/--verbose` **count** follows the same precedence as every other option (CLI > config) and is handed to plugins inside `ctx`: `ctx["verbose"]` (the integer count) and `ctx["log"]` — that `pout` **curried** with the run's verbosity already bound. The tool keeps the click-cutter template's `pout(msg, Verbose, level, newline)` (+ `Level` IntEnum: DEBUG shown at `Verbose >= 2` on stdout, WARNING at `>= 1` on stderr, INFO/ERROR/CRITICAL always) as the single definition of verbosity, and plugin-side progress output must go through `pout`/`ctx["log"]` so it follows the user's `-v`: `Level.WARNING` for "data missing, falling back" notices and `Level.DEBUG` for per-evaluation values — the R-28 levels, one definition shared by tool and plugin. |
-| R-43 | Buff/debuff values carry **`duration`** and **`activation`** as reserved keys inside the same map as the level keys: `Atk_multiplier: { 1: 0.15, 6: 0.7, duration: { 1: 10, 4: 12 }, activation: main_skill }`. `duration` is in **seconds**, sparse, and interpolated by the R-19 rule (10 s for levels 1–3, 12 s for 4–6); `activation` is strictly one of the four skill keys (`auto_skill`/`main_skill`/`sub_skill`/`ult_skill`, R-40) and names the skill whose use grants the buff. Skills declare the same pair on their `buf`/`debuf` maps inside a `sources[]` entry (R-32). The loader validates the pair and **excludes both keys from aggregation** (R-20, R-35): they are convention metadata, never damage-formula keys. |
+| R-43 | Buff/debuff values carry **`duration`** and **`activation`** as reserved keys inside the same map as the level keys: `Atk_multiplier: { 1: 0.15, 6: 0.7, duration: { 1: 10, 4: 12 }, activation: main_skill }`. `duration` is in **seconds**, sparse, and read as **level bands** — the last declared anchor at or below the level applies, so `{ 1: 10, 4: 12 }` is 10 s for levels 1–3 and 12 s for 4–6 (a band, not an even step: §11 item 24); `activation` is strictly one of the four skill keys (`auto_skill`/`main_skill`/`sub_skill`/`ult_skill`, R-40) and names the skill whose use grants the buff. Skills declare the same pair on their `buf`/`debuf` maps inside a `sources[]` entry (R-32). The loader validates the pair and **excludes both keys from aggregation** (R-20, R-35): they are convention metadata, never damage-formula keys. |
 | R-44 | The bundled reference character set (and the data behind the sample objective) is authored from **user-extracted** wiki data taken from the Stella Sora wiki pages forチトセ, アヤメ, テレサ; the extract is kept **in the repo workspace only as authoring source** (`wiki_data/`, git-ignored — see the §8/§9/§11 amendment below), so the tool and the build never fetch from the wiki and the wheel's provenance is the authored YAML itself. |
 
 ### CLI / IO
@@ -186,7 +186,7 @@ One file per character (or several characters per file, top-level key = characte
 | `skillPercentAmend` | number | Percent-of-Atk in **×100 percent** units, i.e. `11.30` ⇒ 1130 % of Atk. Kernel conversion: `skill_percent_to_amend(v * 100)`. |
 | `talents_main` / `talents_sub` | list | Index 0–3 = core (`core_talent: true`), index 4–15 = sub. Order defines the variable order of that character (R-08, R-17). |
 | `<param_key>` | map | `level: value`; sparse on the other side. Missing intermediate levels interpolated (R-19). The reserved keys `duration`/`activation` may share the map (R-43) and are **never** parameters. |
-| `duration` (reserved) | number **or** sparse map (seconds) | Buff/debuff uptime of the value at that level: `{ 1: 10, 4: 12 }` = 10 s for levels 1–3, 12 s for 4–6 (interpolated by the R-19 rule); a bare number means the same duration at every level (R-43). |
+| `duration` (reserved) | number **or** sparse map (seconds) | Buff/debuff uptime of the value at that level: `{ 1: 10, 4: 12 }` = 10 s for levels 1–3, 12 s for 4–6, i.e. the **last declared anchor at or below the level** applies (level bands, not an even step — see §11 item 24); a bare number means the same duration at every level (R-43). |
 | `activation` (reserved) | `auto_skill` \| `main_skill` \| `sub_skill` \| `ult_skill` | Which skill's use grants the buff — strictly one of the four skill keys of R-40, no other tags (R-43). |
 
 Abbreviated example (documentation sample, not shipped source):
@@ -241,7 +241,10 @@ the same pair, and needs a label-unique `name` when named (R-30, R-32, R-43).
 Interpolation of a sparse level map (R-19) is fully pinned: the origin `(0, 0)` counts as an
 anchor, values between two anchors change in an even step, and values **after the last anchor
 repeat it** — so `{6: 0.10}` means 0.0167 at level 1 rising to 0.10 at level 6 and 0.10 above,
-and `{1: 0.15}` means 0.15 at every level at or above 1.
+and `{1: 0.15}` means 0.15 at every level at or above 1. A `duration` map is the exception: it
+reads as **level bands** (the last declared anchor at or below the level), because the game states
+one uptime per level band and the pair's own worked example (`10 s` for levels 1–3, `12 s` for
+4–6) is not reproducible by an even step (§11 item 24).
 
 Role semantics of the four skill keys are fixed data conventions, **not extra keys** (R-40):
 the `main` slot may use `auto_skill` + `main_skill` + `ult_skill`; `sub1`/`sub2` may use
@@ -770,9 +773,16 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
      semver-pinned interface surface and every example says `ssoptim optimize …`, so 0.1.0 registers
      exactly one command under the group. The template's `cli_type = simple` would have made the
      documented invocations fail; the planned `chars`/`plugins`/`eval` sub-commands then only add
-     sibling commands to the same group.
+      sibling commands to the same group.
+ 24. **Duration bands, not even steps** (R-43): the spec's own worked example states
+      `{ 1: 10, 4: 12 }` as "10 s for levels 1-3, 12 s for 4-6" while labelling it "interpolated
+      by the R-19 rule", which an even step cannot produce (it would give 10.7/11.3 s). The
+      concrete example wins: the game states one uptime per level band, so durations are read
+      last-anchor-at-or-below and only the *value* maps keep the even step. Levels below the
+      first band take that band — a gated buff exists at every owned level, and 0 s would mean
+      "no buff". R-43, §4.1 and §10 now say "level bands" so data, loader and plugins agree.
 
-## 12. Open questions — answers recorded (see §11 items 10–21 for rationale)
+## 12. Open questions — answers recorded (see §11 items 10–24 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |

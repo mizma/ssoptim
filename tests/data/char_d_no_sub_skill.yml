@@ -1,0 +1,42 @@
+# Support-slot character with no sub_skill: the loader must only warn (R-40).
+Char D:
+  stats: { Atk: 3000, HP: 30000, DEF: 80 }
+  auto_skill:
+    loop_time: 4.00
+    damage: { elemVentusDmg: { skillPercentAmend: 6.00 } }
+  ult_skill:
+    damage: { elemVentusDmg: { skillPercentAmend: 25.00 } }
+  talents_main:
+    - { talent_name: "D C1", core_talent: true }
+    - { talent_name: "D C2", core_talent: true }
+    - { talent_name: "D C3", core_talent: true }
+    - { talent_name: "D C4", core_talent: true }
+    - { talent_name: "D S1", core_talent: false, Atk_multiplier: { 1: 0.03, 6: 0.12 } }
+    - { talent_name: "D S2", core_talent: false }
+    - { talent_name: "D S3", core_talent: false }
+    - { talent_name: "D S4", core_talent: false }
+    - { talent_name: "D S5", core_talent: false }
+    - { talent_name: "D S6", core_talent: false }
+    - { talent_name: "D S7", core_talent: false }
+    - { talent_name: "D S8", core_talent: false }
+    - { talent_name: "D S9", core_talent: false }
+    - { talent_name: "D S10", core_talent: false }
+    - { talent_name: "D S11", core_talent: false }
+    - { talent_name: "D S12", core_talent: false }
+  talents_sub:
+    - { talent_name: "D SC1", core_talent: true }
+    - { talent_name: "D SC2", core_talent: true }
+    - { talent_name: "D SC3", core_talent: true }
+    - { talent_name: "D SC4", core_talent: true }
+    - { talent_name: "D SS1", core_talent: false, Atk_multiplier: { 1: 0.02, 6: 0.08 } }
+    - { talent_name: "D SS2", core_talent: false }
+    - { talent_name: "D SS3", core_talent: false }
+    - { talent_name: "D SS4", core_talent: false }
+    - { talent_name: "D SS5", core_talent: false }
+    - { talent_name: "D SS6", core_talent: false }
+    - { talent_name: "D SS7", core_talent: false }
+    - { talent_name: "D SS8", core_talent: false }
+    - { talent_name: "D SS9", core_talent: false }
+    - { talent_name: "D SS10", core_talent: false }
+    - { talent_name: "D SS11", core_talent: false }
+    - { talent_name: "D SS12", core_talent: false }

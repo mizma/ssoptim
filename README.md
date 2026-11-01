@@ -352,6 +352,10 @@ Custom plugins live outside the package and are referenced by spec:
 
 ## Known Issues
 
+Implementor-level list of what is still open (packaging asymmetries, data keys the built-ins
+do not read, planned M9+ features) is in [DESIGN.md](DESIGN.md) 13; the list below is what a
+user of 0.1.0 sees.
+
 * The tool is pre-release: the bundled character data set is the three authored characters
   (チトセ, アヤメ, テレサ - values read off the reference wiki extract), other characters are
   user data, and built-in objectives other than `auto_attack` are planned for later 0.x

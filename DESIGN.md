@@ -792,8 +792,22 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
       driver evaluates one candidate at a time - so no per-evaluation closure plumbing or
       extra arguments are needed, and the plugin still never maps `x` positions to talents
       itself (R-37, R-38).
+ 26. **Internal negation is the driver's private detail** (R-21, Q-1, §5): "the tool maximizes and
+      never negates or normalizes" describes the *reported* contract - the printed objective value
+      and the §4.3 `objective_value` are exactly what the plugin returned, and a smaller-is-better
+      plugin must negate on its own side. SciPy's `differential_evolution` only minimizes, so
+      `optimize.py` wraps it with a negating closure for the search alone; nothing outside that
+      closure ever sees the negated number. The greedy fill and `verify()` work on the same
+      wrapper, so the deterministic reference and the safety net agree with the reported value.
+ 27. **Deterministic greedy fill** (§5 fallback, R-11): the repair/reference fill starts at the
+      lower bounds, promotes the core talents with the smallest vector index until each member's
+      core row sums to 2 (R-04/R-16), then repeatedly adds one level at the index whose one-level
+      gain is largest, skipping any trial that breaks a row or a bound, with ties broken by the
+      smallest index and `at_most` runs stopping as soon as no gain is positive. Ties matter
+      because the tests compare an exhaustive enumeration against this fill (M5 acceptance);
+      the rule is pinned here so the fixture, the code and the tests share one answer.
 
-## 12. Open questions — answers recorded (see §11 items 10–25 for rationale)
+## 12. Open questions — answers recorded (see §11 items 10–27 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |

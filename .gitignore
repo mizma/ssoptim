@@ -170,6 +170,8 @@ ssoptim/_version.py
 uv.lock
 # reference-only wiki extract (R-44 authoring source; never shipped, never read)
 wiki_data/
+# written by the tool on first run in the working directory (4.2 schema)
+ssoptim.yml
 
 ### Python Patch ###
 # Poetry local configuration file - https://python-poetry.org/docs/configuration/#local-configuration

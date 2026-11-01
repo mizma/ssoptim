@@ -9,12 +9,19 @@ No click definitions and no IO formatting live here: click options are parsed
 in ``cli.py`` and rendered in ``report.py``; this module only orchestrates the
 pipeline.  It also owns the single definition of verbosity (R-42): ``pout`` and
 the ``Level`` enum, which plugins reach through ``ctx["log"]``.
+
+The pipeline modules are imported inside ``cmd`` rather than at module level:
+this module is the definition of ``pout``/``Level``, and ``talent.py``,
+``plugins.py``, ``report.py`` and the objectives all import it, so a top-level
+import here would close the cycle on a partially initialized module.
 """
 
 from enum import IntEnum
+from functools import partial
 from pprint import pformat
 
 import click
+
 
 class Level(IntEnum):
     NOTSET = 0
@@ -65,13 +72,95 @@ def pout(msg=None, Verbose=0, level=Level.INFO, newline=True):
     pass
 
 
+# The settings keys cli.py hands down: the 4.2 configuration keys plus the
+# CLI-only knobs.  cli.py has already applied the 7 precedence chain
+# (CLI > --restrictions file > --config file), so what is left here is the
+# built-in default layer.
+KNOWN_SETTINGS = (
+    "verbose", "config", "party", "data_dirs", "objective", "total_level", "total_level_mode",
+    "scenario", "objective_opts", "restrictions", "solver", "out", "show_params",
+    "char", "sub", "main", "scenario_pairs", "objective_pairs",
+)
+SOLVER_DEFAULTS = {"maxiter": 300, "popsize": 24, "runs": 3, "seed": 1, "polish": True}
+
+
 def cmd(kwargs):
-    """Implementation.  Orchestrates the pipeline of §9; grows with the milestones.
+    """Implementation.  Orchestrates the pipeline of 9 (M6).
 
     Args:
-        kwargs (dict): command line arguments parsed by the Click library
+        kwargs (dict): the flat settings dict cli.py assembled from the click
+        options, the ``--config`` file and the ``--restrictions`` file (7
+        precedence), keyed by the 4.2 config names.  ``cmd`` reads settings
+        only - it knows no option names and does no formatting (report.py
+        owns that) - and runs: data load -> party -> generated constraints ->
+        objective resolution -> per-candidate ctx -> solve -> 4.3 result.
+
+    Raises:
+        InputError / Infeasible / PluginError / NoFeasible: the owning module's
+        exception, which cli.py maps to the 7 exit codes (2/3/4/5).
     """
-    verbose = kwargs["verbose"]
-    pout("Command line arguments:", verbose, Level.INFO)
-    pout(pformat(kwargs, depth=3, indent=4), verbose, Level.INFO)
-    pass
+    from .data import InputError, load_characters, build_party, normalize_scenario
+    from .constraints import build_problem
+    from .plugins import build_run_context, resolve_plugin
+    from .objectives import REGISTRY
+    from .optimize import solve
+    from .report import document, with_params, write
+
+    verbose = kwargs.get("verbose", 0)
+    log = partial(pout, Verbose=verbose)
+
+    settings = {key: kwargs[key] for key in KNOWN_SETTINGS if key in kwargs}
+    settings.setdefault("party", {})
+    settings.setdefault("data_dirs", [])
+    settings.setdefault("objective", "auto_attack")
+    settings.setdefault("total_level_mode", "exact")
+    settings.setdefault("scenario", normalize_scenario(None))
+    settings.setdefault("objective_opts", {})
+    settings.setdefault("restrictions", {})
+    settings.setdefault("out", None)
+    settings.setdefault("show_params", False)
+    settings.setdefault("char", [])
+    settings.setdefault("sub", [])
+    settings.setdefault("main", None)
+    solver = dict(SOLVER_DEFAULTS)
+    solver.update(settings.get("solver") or {})
+    settings["solver"] = solver
+
+    # party: the 4.2 block, overridden by -m / the two -s (R-01, 7 precedence)
+    party = dict(settings["party"])
+    if settings["main"] is not None:
+        party["main"] = settings["main"]
+    if settings["sub"]:
+        party["sub1"], party["sub2"] = settings["sub"]
+
+    characters = load_characters(list(settings["char"]) + list(settings["data_dirs"]), log)
+    built = build_party(party, characters, log)
+    members, vars_layout = built["members"], built["vars"]
+
+    total_level = settings.get("total_level")
+    if total_level is None:
+        raise InputError("total_level is mandatory: pass -t/--total-levels or set it in the config file (R-13, 7)")
+
+    problem = build_problem(members, vars_layout, total_level, settings["total_level_mode"], settings["restrictions"])
+    objective, spec = resolve_plugin(settings["objective"], REGISTRY, log)
+    ctx = build_run_context(members, vars_layout, settings["scenario"], settings["objective_opts"], verbose, log)
+
+    best, value = solve(
+        objective,
+        problem,
+        ctx,
+        total_level,
+        settings["total_level_mode"],
+        runs=solver["runs"],
+        seed=solver["seed"],
+        maxiter=solver["maxiter"],
+        popsize=solver["popsize"],
+        polish=solver["polish"],
+        log=log,
+    )
+
+    doc = document(best, value, members, problem, spec, total_level)
+    if settings["show_params"] or verbose >= 2:  # 4.3: --show-params, implied by -vv (R-36)
+        doc = with_params(doc, ctx["aggregated"], settings["scenario"])
+    write(doc, settings["out"], verbose)
+    return doc

@@ -31,7 +31,20 @@ def test_group_shape_one_optimize_verb():
     assert list(cli.commands.keys()) == ["optimize"]
 
 
-def test_optimize_stub_runs():
-    """The verb is live: `ssoptim optimize -v` exits 0 (M0)."""
+def test_optimize_runs_the_whole_surface():
+    """The verb is live and takes every option of 7 (M6 state).
+
+    A bare invocation is now a usage error (no party, no budget), which the
+    scaffold test of M0 could not tell apart: the stub used to exit 0, while
+    the implemented pipeline reports the missing configuration with exit 2.
+    """
     result = CliRunner().invoke(cli, ["optimize", "-v"])
-    assert result.exit_code == 0
+    assert result.exit_code == 2
+    help_result = CliRunner().invoke(cli, ["optimize", "--help"])
+    assert help_result.exit_code == 0
+    for flag in ("--config", "--main", "--sub", "--total-levels", "--objective", "--char",
+                 "--restrictions", "--total-level-mode", "--out", "--scenario",
+                 "--objective-opts", "--show-params", "--maxiter", "--popsize", "--runs",
+                 "--seed", "--no-polish"):
+        assert flag in help_result.output
+

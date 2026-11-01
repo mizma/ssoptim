@@ -549,7 +549,7 @@ ssoptim optimize [-c CFG] [-m MAIN] [-s SUB1 ...] [-t N] [-f OBJECTIVE]
 | `-t, --total-levels N` | `total_level` | mandatory (config or CLI) |
 | `-f, --objective SPEC` | `objective` | plugin spec, default `auto_attack` |
 | `--char PATH` | `data_dirs` | repeatable file or dir; searched before bundled data |
-| `--restrictions FILE` | `restrictions` | separate restrictions YAML (merges over config) |
+| `--restrictions FILE` | `restrictions` | separate restrictions YAML: the 4.2 restrictions block itself, bare or wrapped in a `restrictions:` key; merged by talent name (11 item 28) |
 | `-o, --out FILE` | — | default: stdout YAML only |
 | `--scenario KEY=VAL` | `scenario.*` | repeatable; per-key override of the enemy profile (R-36) |
 | `--objective-opts KEY=VAL` | `objective_opts` | repeatable; free-form plugin-specific constants, delivered as `ctx["objective_opts"]` (R-36, R-37) |
@@ -797,8 +797,9 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
       and the §4.3 `objective_value` are exactly what the plugin returned, and a smaller-is-better
       plugin must negate on its own side. SciPy's `differential_evolution` only minimizes, so
       `optimize.py` wraps it with a negating closure for the search alone; nothing outside that
-      closure ever sees the negated number. The greedy fill and `verify()` work on the same
-      wrapper, so the deterministic reference and the safety net agree with the reported value.
+      wrapper ever sees the negated number. The greedy fill and `verify()` use the same wrapper,
+      so the deterministic reference and the safety net agree on the reported value.
+
  27. **Deterministic greedy fill** (§5 fallback, R-11): the repair/reference fill starts at the
       lower bounds, promotes the core talents with the smallest vector index until each member's
       core row sums to 2 (R-04/R-16), then repeatedly adds one level at the index whose one-level
@@ -807,7 +808,25 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
       because the tests compare an exhaustive enumeration against this fill (M5 acceptance);
       the rule is pinned here so the fixture, the code and the tests share one answer.
 
-## 12. Open questions — answers recorded (see §11 items 10–27 for rationale)
+ 28. **Restrictions file shape and merge** (7 `--restrictions FILE`): the file carries the same
+      content as the config's `restrictions:` block, and both spellings are accepted - a bare
+      `main`/`sub1`/`sub2` mapping, or the block wrapped in one `restrictions:` key - so a player
+      can keep one restrictions file and use it with or without a full config. Merging is per slot
+      and per key: `min`/`max` are replaced, and `talent_levels` entries are replaced **by name**
+      (an entry whose name already exists in the config is overwritten, a new name is appended);
+      positional entries without a name are simply appended, because they address no name to match
+      on. The alternative - concatenating lists - would let a config bound and a file bound for the
+      same talent both survive and fight over the variable.
+
+ 29. **Exit-code mapping lives in the command handler** (7): the owning modules raise their own
+      class with the code attached (`InputError` 2 in `data.py`, `Infeasible` 3 in `constraints.py`,
+      `PluginError` 4 in `plugins.py`, `NoFeasible` 5 in `optimize.py`), and `cli.py`'s `optimize`
+      handler prints the message through `pout` and raises `SystemExit(code)`. Mapping at the
+      command layer instead of only inside `main()` keeps the table testable through click's
+      `CliRunner` (which invokes the command object, not the console-script wrapper) and gives the
+      installed console script the same behaviour.
+
+## 12. Open questions — answers recorded (see §11 items 10–29 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |

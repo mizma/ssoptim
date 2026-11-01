@@ -65,7 +65,11 @@ loaded by path:
   * PATH: character data file or directory; repeatable, searched before the bundled
     character set
 * --restrictions FILE
-  * FILE: YAML file of optimization restrictions (merged over the config file)
+  * FILE: YAML file of optimization restrictions (merged over the config file);
+    the file holds the same block as the Configuration file's `restrictions:` key -
+    either the bare `main`/`sub1`/`sub2` mapping, or the whole block wrapped in a
+    `restrictions:` key. Entries name a talent, so a name given in both places is
+    the file's entry that wins; a name only in the file is added.
 * --total-level-mode {exact,at_most}
   * exact (default): the chosen levels must sum to the budget; at_most: levels may
     go unused when the objective stops improving

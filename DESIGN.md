@@ -825,8 +825,14 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
       command layer instead of only inside `main()` keeps the table testable through click's
       `CliRunner` (which invokes the command object, not the console-script wrapper) and gives the
       installed console script the same behaviour.
+ 30. **Explicit package data, no VCS data pickup** (R-22, packaging): ``include-package-data`` is
+      off and ``[tool.setuptools.package-data]`` names ``ssoptim/characters/*.yml``, so the wheel
+      carries exactly the package modules plus the bundled character set - the test fixtures, the
+      repo-root ``characters/`` and ``plugins/`` user dirs and the reference ``wiki_data/`` extract
+      never ship. The bundled files are named after the in-game character names, which is what a
+      party block addresses, so an installed copy needs no user data to run a first optimization.
 
-## 12. Open questions — answers recorded (see §11 items 10–29 for rationale)
+## 12. Open questions — answers recorded (see §11 items 10–30 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |

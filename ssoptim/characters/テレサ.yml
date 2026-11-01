@@ -1,0 +1,214 @@
+# Bundled character data for テレサ (Aqua element).
+# Authored from the reference-only wiki extract (R-44); the extract is not
+# committed and never read at runtime, this file is the committed artifact.
+"テレサ":
+  element: Aqua
+  stats: { Atk: 5495, HP: 74091, DEF: 190 }
+  auto_skill:
+    loop_time: 20.0
+    damage:
+      elemAquaDmg:
+        skillPercentAmend: 1.72              # 22.3 + 13.7 + 48 + 88
+  main_skill:
+    cd: 8.0
+    sources:
+      - name: hit
+        damage: { elemAquaDmg: { skillPercentAmend: 5.55 } }   # 222 + 333
+      - name: wave
+        damage: { elemAquaDmg: { skillPercentAmend: 1.25 } }   # core 飛水・爆撃
+  sub_skill:
+    cd: 14.0
+    sources:
+      - name: stab
+        damage: { elemAquaDmg: { skillPercentAmend: 1.09 } }
+      - name: wave
+        loop_time: 1.0                       # 1 s ticks over 6 s
+        dot: true
+        damage: { elemAquaDmg: { skillPercentAmend: 0.564 } }  # 56.4 % per tick
+  ult_skill:
+    cd: 30.0
+    damage:
+      elemAquaDmg:
+        skillPercentAmend: 11.41             # 940 + 201
+  talents_main:
+    - talent_name: "飛水・爆撃"
+      core_talent: true
+      slotSkillDmg:
+        1: 0.16                              # main skill +16 %
+    - talent_name: "飛水・溜力"
+      core_talent: true
+      extraSkillPct:
+        1: 3.47                              # 71x2 + 119 + 79
+    - talent_name: "飛水・環雲"
+      core_talent: true
+      extraSkillPct:
+        1: 1.12                              # surge-shield wave
+    - talent_name: "飛水・加護"
+      core_talent: true
+      spGain:                                # free-form: SP on a 印 apply
+        1: 0.04
+    - talent_name: "濁流の誘い"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.027
+        6: 0.107                             # team-wide, 6 s, 5 stacks
+        duration: { 1: 6, 6: 6 }
+        activation: main_skill
+    - talent_name: "魔剣重圧"
+      core_talent: false
+      break_penMod:                          # free-form: break-value PEN
+        1: 0.19
+        6: 0.51
+        duration: { 1: 6, 6: 6 }
+        activation: main_skill
+    - talent_name: "大剣の傷痕"
+      core_talent: false
+      elemAquaDmgTaken:
+        1: 0.088
+        6: 0.344                             # foe takes +Aqua, 6 s
+        duration: { 1: 6, 6: 6 }
+        activation: main_skill
+      elemAquaDmgTaken_unchained:
+        1: 0.11
+        6: 0.43                              # while not broken
+    - talent_name: "魔盾召喚"
+      core_talent: false
+      shield_absorb_pct:                     # free-form: surge-shield absorb
+        1: 0.65
+        6: 1.73
+        duration: { 1: 5, 6: 5 }
+        activation: sub_skill
+    - talent_name: "護り人の祝福"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.07
+        6: 0.27                              # team-wide while shielded
+        duration: { 1: 5, 6: 5 }
+        activation: ult_skill
+    - talent_name: "吸魔大剣"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.10
+        6: 0.40
+      slotSkillCdMod:
+        1: -0.125                            # cd -1 s of 8 s
+    - talent_name: "仲間との絆"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.04
+        6: 0.15                              # team-wide per Aqua member
+    - talent_name: "魔盾強化"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.41
+        6: 1.62                              # while shielded, 8 s
+        duration: { 1: 8, 6: 8 }
+        activation: sub_skill
+    - talent_name: "溜めの一撃"
+      core_talent: false
+      stun_duration:                         # free-form: stun, seconds
+        1: 2
+        6: 2
+    - talent_name: "絶水渦流"
+      core_talent: false
+      elemAquaDmgTaken:
+        1: 0.16
+        6: 0.65                              # foe takes +Aqua after the ult
+        duration: { 1: 20, 6: 20 }
+        activation: ult_skill
+    - talent_name: "限界超越"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.18
+        6: 0.73                              # team-wide, 20 s after the ult
+        duration: { 1: 20, 6: 20 }
+        activation: ult_skill
+    - talent_name: "潮流魔剣"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.37
+        6: 1.49                              # vs 印/chilled/frozen
+  talents_sub:
+    - talent_name: "絶流・無限"
+      core_talent: true
+      shield_duration_pct:                   # free-form: surge-shield +100 %
+        1: 1.0
+      Atk_multiplier_ally:
+        1: 0.219                             # Aqua main's Atk while shielded
+    - talent_name: "絶流・波紋"
+      core_talent: true
+      extraSkillPct:
+        1: 0.77
+    - talent_name: "絶流・悠久"
+      core_talent: true
+      duration_mod:                          # wave area +67 %
+        1: 0.67
+    - talent_name: "絶流・重圧"
+      core_talent: true
+      slotSkillDmg:
+        1: 0.44
+    - talent_name: "どうにゃ！"
+      core_talent: false
+      Atk_multiplier_ally:
+        1: 0.19
+        6: 0.74                              # Aqua main while shielded
+    - talent_name: "まだまだにゃ！"
+      core_talent: false
+      Atk_multiplier_ally:
+        1: 0.12
+        6: 0.31
+    - talent_name: "ウチが守るよ！"
+      core_talent: false
+      shield_absorb_pct:
+        1: 0.19
+        6: 0.51
+    - talent_name: "強化するにゃ！"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.13
+        6: 0.51                              # in the wave area, per second
+        duration: { 1: 1, 6: 1 }
+        activation: sub_skill
+    - talent_name: "近づくにゃ！"
+      core_talent: false
+      slotSkillCdMod:
+        1: -0.5                              # wave tick interval -50 %
+    - talent_name: "決めるにゃ！"
+      core_talent: false
+      extraSkillPct:
+        1: 0.14
+        6: 0.373
+    - talent_name: "激流鼓舞"
+      core_talent: false
+      Atk_multiplier_aqua:
+        1: 0.14
+        6: 0.54                              # Aqua characters' Atk
+    - talent_name: "絆創膏集め"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.11
+        6: 0.44                              # team-wide while on field
+    - talent_name: "縁の下の力持ち"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.09
+        6: 0.36
+    - talent_name: "絶水渦流"
+      core_talent: false
+      elemAquaDmgTaken:
+        1: 0.16
+        6: 0.65
+        duration: { 1: 20, 6: 20 }
+        activation: ult_skill
+    - talent_name: "限界超越"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.18
+        6: 0.73
+        duration: { 1: 20, 6: 20 }
+        activation: ult_skill
+    - talent_name: "潮流魔剣"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.37
+        6: 1.49

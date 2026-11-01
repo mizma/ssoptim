@@ -352,9 +352,11 @@ Custom plugins live outside the package and are referenced by spec:
 
 ## Known Issues
 
-* The tool is pre-release: the bundled character data set is incomplete, and built-in
-  objectives other than `auto_attack` are planned for later 0.x releases. The DPS sample
-  (`plugins/simple_dps.py`) ships as an external plugin, not as a built-in objective.
+* The tool is pre-release: the bundled character data set is the three authored characters
+  (チトセ, アヤメ, テレサ - values read off the reference wiki extract), other characters are
+  user data, and built-in objectives other than `auto_attack` are planned for later 0.x
+  releases. The DPS sample (`plugins/simple_dps.py`) ships as an external plugin, not as a
+  built-in objective.
 * Timing data (`cd`, `loop_time`) is authored from the game spec or video analysis and is the
   data author's responsibility; where it is missing, DPS-minded objectives fall back to per-hit
   damage and warn with `-v`.

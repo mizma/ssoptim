@@ -1,0 +1,73 @@
+# User character data example (the repo-root characters/ dir of README's Layout).
+# Drop your own YAML here and point data_dirs / --char at this directory; the
+# bundled set inside the installed package is searched last, so a name defined
+# here shadows the bundled one.
+"Char A":
+  stats: { Atk: 6966, HP: 94662, DEF: 0 }
+  auto_skill:
+    loop_time: 4.2
+    damage:
+      elemLuxDmg:
+        skillPercentAmend: 11.30        # 1130 % of Atk
+  main_skill:
+    cd: 12.0
+    damage:
+      elemLuxDmg:
+        skillPercentAmend: 8.90
+  sub_skill:
+    cd: 10.0
+    damage:
+      elemLuxDmg:
+        skillPercentAmend: 5.00
+  ult_skill:
+    sources:
+      - name: hit
+        damage: { elemLuxDmg: { skillPercentAmend: 20.00 } }
+      - name: mark
+        cd: 6.0
+        damage: { slotMarkDmg: { skillPercentAmend: 1.22 } }
+        debuf:
+          DEF_rate_mod:
+            1: 0.10
+            duration: { 1: 6, 4: 6 }
+            activation: main_skill
+  talents_main:
+    - { talent_name: "Core Talent 1", core_talent: true, Atk_multiplier: { 1: 0.15 } }
+    - { talent_name: "Core Talent 2", core_talent: true }
+    - { talent_name: "Core Talent 3", core_talent: true }
+    - { talent_name: "Core Talent 4", core_talent: true }
+    - talent_name: "Sub Talent Z"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.045
+        6: 0.18                       # levels 2-5 interpolated evenly
+        duration: { 1: 10, 4: 12 }     # buff uptime, read as level bands
+        activation: main_skill
+    - { talent_name: "Sub Talent Y", core_talent: false, crit_rateMod: { 1: 0.05 } }
+    - { talent_name: "Sub Talent X", core_talent: false, slotAutoAttackDmg: { 1: 0.10 } }
+    - { talent_name: "Sub Talent W", core_talent: false }
+    - { talent_name: "Sub Talent V", core_talent: false }
+    - { talent_name: "Sub Talent U", core_talent: false }
+    - { talent_name: "Sub Talent T", core_talent: false }
+    - { talent_name: "Sub Talent S", core_talent: false }
+    - { talent_name: "Sub Talent R", core_talent: false }
+    - { talent_name: "Sub Talent Q", core_talent: false }
+    - { talent_name: "Sub Talent P", core_talent: false }
+    - { talent_name: "Sub Talent O", core_talent: false }
+  talents_sub:
+    - { talent_name: "Support Core 1", core_talent: true, Atk_multiplier: { 1: 0.10 } }
+    - { talent_name: "Support Core 2", core_talent: true }
+    - { talent_name: "Support Core 3", core_talent: true }
+    - { talent_name: "Support Core 4", core_talent: true }
+    - { talent_name: "Support Sub L", core_talent: false, Atk_multiplier: { 1: 0.04, 6: 0.16 } }
+    - { talent_name: "Support Sub K", core_talent: false, elemLuxDmg: { 1: 0.10 } }
+    - { talent_name: "Support Sub J", core_talent: false }
+    - { talent_name: "Support Sub I", core_talent: false }
+    - { talent_name: "Support Sub H", core_talent: false }
+    - { talent_name: "Support Sub G", core_talent: false }
+    - { talent_name: "Support Sub F", core_talent: false }
+    - { talent_name: "Support Sub E", core_talent: false }
+    - { talent_name: "Support Sub D", core_talent: false }
+    - { talent_name: "Support Sub C", core_talent: false }
+    - { talent_name: "Support Sub B", core_talent: false }
+    - { talent_name: "Support Sub A", core_talent: false }

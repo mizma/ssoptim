@@ -44,8 +44,18 @@ changelog = "https://github.com/koma75/SSOptim/blob/main/CHANGES.md"
 [project.scripts]
 ssoptim = "ssoptim.cli:main"
 
+# only the package's own modules plus the declared package data ship: the
+# repo-root characters/ and plugins/ dirs are the user's own copies, and
+# tests/ or the VCS-tracked files stay out (no VCS-based data pickup)
+[tool.setuptools]
+include-package-data = false
+
 [tool.setuptools.packages.find]
 exclude = ["build", "tests", "characters", "plugins", "wiki_data", "dist"]
+
+# the bundled character set ships inside the package (R-22)
+[tool.setuptools.package-data]
+ssoptim = ["characters/*.yml", "characters/*.yaml"]
 
 [tool.setuptools.dynamic]
 version = { attr = "ssoptim.__version__" }

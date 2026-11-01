@@ -1,0 +1,211 @@
+# Bundled character data for アヤメ (Aqua element).
+# Authored from the reference-only wiki extract (R-44); the extract is not
+# committed and never read at runtime, this file is the committed artifact.
+# "X〜Y" on the wiki becomes the level-1 and level-6 anchors of 4.1.
+"アヤメ":
+  element: Aqua
+  stats: { Atk: 6333, HP: 43595, DEF: 190 }
+  auto_skill:
+    loop_time: 20.0
+    sources:
+      - name: arrows
+        damage: { elemAquaDmg: { skillPercentAmend: 0.912 } }  # 27.3 + 18.3 + 15.2x3
+      - name: bag
+        damage: { elemAquaDmg: { skillPercentAmend: 0.593 } }  # 59.3 % when a foe is close
+  main_skill:
+    cd: 6.0
+    sources:
+      - name: hit
+        damage: { elemAquaDmg: { skillPercentAmend: 2.38 } }   # 238 %
+      - name: mark
+        damage: { slotMarkDmg: { skillPercentAmend: 0.57 } }   # 水属性の印 57 %
+  sub_skill:
+    cd: 12.0
+    sources:
+      - name: pillar
+        loop_time: 0.5                        # 0.5 s ticks over 4 s
+        dot: true
+        damage: { elemAquaDmg: { skillPercentAmend: 1.02 } }   # 102 % per tick
+  ult_skill:
+    cd: 30.0
+    sources:
+      - name: field
+        loop_time: 0.5                        # 0.5 s ticks over 5 s
+        dot: true
+        damage: { elemAquaDmg: { skillPercentAmend: 1.84 } }   # 184 % per tick
+  talents_main:
+    - talent_name: "ベクトル・硬化"
+      core_talent: true
+      slotSkillDmg:
+        1: 0.01                               # +1 % per auto hit, up to 20 stacks
+    - talent_name: "ベクトル・粉砕"
+      core_talent: true
+      extraSkillPct:
+        1: 2.69                               # 269 % extra on the main skill
+    - talent_name: "ベクトル・誘導"
+      core_talent: true
+      extraSkillPct:
+        1: 1.04                               # 霜華 20.8 % x5
+    - talent_name: "ベクトル・貫通"
+      core_talent: true
+      extraSkillPct:
+        1: 1.04                               # 26 % x4 over 2 s
+    - talent_name: "鋭い判断"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.23
+        6: 0.91                               # 23〜91 % next main-skill damage
+        duration: { 1: 12, 6: 12 }              # armed at 12 s elapsed
+        activation: main_skill
+    - talent_name: "石橋をたたいて"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.40
+        6: 1.59                               # 霜の矢 pierce, +40〜159 %
+    - talent_name: "思わぬ利益"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.93
+        6: 3.73                               # 3rd hit doubles the arrows
+    - talent_name: "正しき精算"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.17
+        6: 0.69                               # while the main skill is active
+        duration: { 1: 6, 6: 6 }
+        activation: main_skill
+    - talent_name: "念には念を"
+      core_talent: false
+      extraSkillPct:
+        1: 0.047
+        6: 0.126                              # 4.7〜12.6 % on a main-skill crit
+    - talent_name: "寒さ対策"
+      core_talent: false
+      crit_rateMod:
+        1: 0.11
+        6: 0.28                               # 6 s, skill crit rate
+        duration: { 1: 6, 6: 6 }
+        activation: main_skill
+    - talent_name: "詐欺師警戒"
+      core_talent: false
+      elemAquaDmg:
+        1: 0.92
+        6: 2.46                               # 92〜246 % on a melee hit taken
+    - talent_name: "知識の重さ"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.60
+        6: 2.38                               # bag swing +60〜238 %
+    - talent_name: "セール品ゲット"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.05
+        6: 0.19                               # 20 s, up to 6 stacks
+        duration: { 1: 20, 6: 20 }
+        activation: ult_skill
+      slotMarkDmg:
+        1: 0.57
+        6: 0.57                               # ult applies the 印 mark
+    - talent_name: "氷華の槍"
+      core_talent: false
+      extraUltimatePct:
+        1: 1.48
+        6: 3.95                               # 148〜395 % extra per second
+    - talent_name: "雪嵐の行進"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.11
+        6: 0.43
+    - talent_name: "氷結の加護"
+      core_talent: false
+      Atk_multiplier_ally:
+        1: 0.23
+        6: 0.93                               # allies inside the ult area
+  talents_sub:
+    - talent_name: "定量・拡散"
+      core_talent: true
+      slotSkillDmg:
+        1: 0.15
+    - talent_name: "定量・引力"
+      core_talent: true
+      slotSkillDmg:
+        1: 0.20
+    - talent_name: "定量・堆積"
+      core_talent: true
+      extraSkillPct:
+        1: 4.05                               # 405 % extra
+    - talent_name: "定量・転移"
+      core_talent: true
+      extraSkillPct:
+        1: 4.16                               # 416 % at the end
+    - talent_name: "収入安定"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.01
+        6: 0.04                               # main's Atk, 15 s, 18 stacks
+        duration: { 1: 15, 6: 15 }
+        activation: sub_skill
+    - talent_name: "暴風豪雪"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.08
+        6: 0.33
+      slotSkillCdMod:
+        1: -0.5                               # tick interval -50 %
+    - talent_name: "永遠の冬"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.06
+        6: 0.23
+      duration_mod:                           # pillar duration +50 %
+        1: 0.5
+        6: 0.5
+    - talent_name: "初志貫徹"
+      core_talent: false
+      extraSubSkillPct:
+        1: 0.63
+        6: 1.68                               # per kill, 63〜168 %
+    - talent_name: "お買い得商品"
+      core_talent: false
+      elemAquaDmgTaken:
+        1: 0.16
+        6: 0.65                               # foe takes +16〜65 % Aqua, 6 s
+        duration: { 1: 6, 6: 6 }
+        activation: sub_skill
+    - talent_name: "火事場泥棒"
+      core_talent: false
+      Atk_multiplier_ally:
+        1: 0.20
+        6: 0.79                               # allies in the pillar area
+    - talent_name: "積極シグナル"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.28
+        6: 1.13                               # team-wide, 10 s from first cast
+        duration: { 1: 10, 6: 10 }
+        activation: sub_skill
+    - talent_name: "初心にかえって"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.10
+        6: 0.38
+    - talent_name: "備蓄は十分"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.29
+        6: 1.15
+    - talent_name: "氷華の槍"
+      core_talent: false
+      extraUltimatePct:
+        1: 1.48
+        6: 3.95
+    - talent_name: "雪嵐の行進"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.11
+        6: 0.43
+    - talent_name: "氷結の加護"
+      core_talent: false
+      Atk_multiplier_ally:
+        1: 0.23
+        6: 0.93

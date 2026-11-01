@@ -36,7 +36,9 @@ class TestFixtureRoundTrip:
 
     def test_all_three_characters_load(self):
         chars = load_characters([CHARS])
-        assert set(chars) == {"Char A", "Char B", "Char C"}
+        # the bundled set inside the package is searched last (M7), so a fixture
+        # load sees its own characters plus the bundled ones
+        assert {"Char A", "Char B", "Char C"} <= set(chars)
         assert chars["Char A"].stats == {"Atk": 6966, "HP": 94662, "DEF": 0}
 
     def test_both_talent_sets_required(self):

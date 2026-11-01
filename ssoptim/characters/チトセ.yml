@@ -1,0 +1,217 @@
+# Bundled character data for ちトセ (Aqua element).
+# Authored from the reference-only wiki extract (R-44): the extract is not
+# shipped and never read at runtime, this file is the committed artifact.
+# Values are read off the wiki's "X〜Y" notation as anchors at level 1 and level
+# 6 (4.1); per-hit percents are summed into the skill's damage portion.
+"チトセ":
+  element: Aqua
+  stats: { Atk: 7542, HP: 87563, DEF: 190 }
+  auto_skill:
+    loop_time: 20.0
+    damage:
+      elemAquaDmg:
+        skillPercentAmend: 6.942          # 694.2 % of Atk over the 6-hit chain
+  main_skill:
+    cd: 8.0
+    sources:
+      - name: hit
+        damage: { elemAquaDmg: { skillPercentAmend: 6.10 } }   # 305 % x2
+      - name: mark
+        damage: { slotMarkDmg: { skillPercentAmend: 1.04 } }   # 水属性の印 104 %
+  sub_skill:
+    cd: 12.0
+    sources:
+      - name: hit
+        damage: { elemAquaDmg: { skillPercentAmend: 1.092 } }  # 27.3 % x4
+      - name: mirror
+        damage: { elemAquaDmg: { skillPercentAmend: 1.545 } }  # 51.5 % x3
+      - name: mark
+        damage: { slotMarkDmg: { skillPercentAmend: 1.04 } }
+  ult_skill:
+    cd: 30.0
+    sources:
+      - name: hit
+        damage: { elemAquaDmg: { skillPercentAmend: 21.23 } }  # 193 % x11
+      - name: drag
+        damage: { elemAquaDmg: { skillPercentAmend: 9.08 } }   # 908 %
+      - name: mark
+        damage: { slotMarkDmg: { skillPercentAmend: 1.04 } }
+  talents_main:
+    # first four entries are the core set (R-03, R-17): exactly two are picked
+    - talent_name: "蛟龍の型"
+      core_talent: true
+    - talent_name: "水影の型"
+      core_talent: true
+    - talent_name: "滝斬の型"
+      core_talent: true
+      extraSkillPct:
+        1: 21.16                          # 529 % x4 of 流閃・鱗
+    - talent_name: "引波の型"
+      core_talent: true
+      slotSkillCdMod:
+        1: -0.5                           # cd -50 %
+    - talent_name: "蛟龍の尾"
+      core_talent: false
+      extraAutoAttackPct:
+        1: 0.74
+        6: 2.96                           # 37〜148 % x2
+        duration: { 1: 3, 6: 3 }            # proc window, seconds
+        activation: main_skill
+    - talent_name: "影隠れの型"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.12
+        6: 0.49                           # 12〜49 % auto-attack damage
+      elemAquaDmg:
+        1: 0.38
+        6: 1.50                           # hits 1-5, +38〜150 %
+    - talent_name: "蛟龍の剣舞"
+      core_talent: false
+      slotAutoAttackDmg:
+        1: 0.016
+        6: 0.066                          # 1.6〜6.6 % for 3 s, 10 stacks
+        duration: { 1: 3, 6: 3 }
+        activation: main_skill
+      elemAquaDmg:
+        1: 0.081
+        6: 0.326                          # final hit, 8.1〜32.6 %
+    - talent_name: "漣撃の型"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.31
+        6: 1.22                           # 31〜122 % skill damage
+    - talent_name: "波間の剣舞"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.09
+        6: 0.34
+        duration: { 1: 6, 6: 6 }            # 6 s after the main skill
+        activation: main_skill
+    - talent_name: "連龍の剣舞"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.12
+        6: 0.48
+    - talent_name: "水龍の共鳴"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.15
+        6: 0.60                           # while another Aqua member is out
+    - talent_name: "石穿の剣舞"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.11
+        6: 0.43
+        duration: { 1: 6, 6: 6 }            # 6 s after the dodge
+        activation: auto_skill              # the four skill keys have no dodge
+    - talent_name: "反攻の型"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.06
+        6: 0.24                           # always on
+      Atk_multiplier_cond:
+        1: 0.08
+        6: 0.33                           # 8 s after being hit / main skill
+        duration: { 1: 8, 6: 8 }
+        activation: main_skill
+    - talent_name: "暴れまわる蛟龍"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.58
+        6: 2.33                           # 58〜233 % ultimate damage
+    - talent_name: "蛟龍の加護"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.25
+        6: 0.98
+        duration: { 1: 20, 6: 20 }          # 20 s after the ultimate
+        activation: ult_skill
+    - talent_name: "蛟龍の霊験"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.73
+        6: 2.91                           # vs frozen/chilled on ultimate
+  talents_sub:
+    - talent_name: "追滝の刃"
+      core_talent: true
+      crit_rateMod:
+        1: 0.15
+    - talent_name: "呑流の渦刃"
+      core_talent: true
+      crit_rateMod:
+        1: 0.35
+      extraSkillPct:
+        1: 0.236                          # 5.9 % x4
+    - talent_name: "滝壺の水影"
+      core_talent: true
+      extraSkillPct:
+        1: 0.66
+    - talent_name: "砕滝の飛沫"
+      core_talent: true
+      extraSkillPct:
+        1: 0.48
+    - talent_name: "激流に身を任せ"
+      core_talent: false
+      slotSkillCritDmg:
+        1: 0.42
+        6: 1.67                           # 42〜167 % skill crit damage
+    - talent_name: "肺腑穿つ滴"
+      core_talent: false
+      slotSkillCritDmg:
+        1: 0.06
+        6: 0.24
+    - talent_name: "末広がりの滝"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.02
+        6: 0.08                           # per extra strike, stacking
+    - talent_name: "影の追い込み漁"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.35
+        6: 1.38                           # vs HP < 70 %
+    - talent_name: "水映の影武者"
+      core_talent: false
+      slotSkillDmg:
+        1: 0.11
+        6: 0.42
+      slotSkillDmg_cond:
+        1: 0.21
+        6: 0.83                           # other mirrors after a kill
+    - talent_name: "合わせ鏡の水影"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.06
+        6: 0.25                           # mirror Atk, resets at skill end
+    - talent_name: "水龍の加勢"
+      core_talent: false
+      elemAquaDmg:
+        1: 0.05
+        6: 0.20                           # per Aqua team member
+    - talent_name: "滝際の波紋"
+      core_talent: false
+      slotMarkDmg:
+        1: 0.47
+        6: 1.89                           # 印 damage
+    - talent_name: "氷川の龍刃"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.10
+        6: 0.40
+    - talent_name: "暴れまわる蛟龍"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.58
+        6: 2.33
+    - talent_name: "蛟龍の加護"
+      core_talent: false
+      Atk_multiplier:
+        1: 0.25
+        6: 0.98
+        duration: { 1: 20, 6: 20 }
+        activation: ult_skill
+    - talent_name: "蛟龍の霊験"
+      core_talent: false
+      slotUltimateDmg:
+        1: 0.73
+        6: 2.91

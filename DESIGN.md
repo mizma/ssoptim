@@ -831,8 +831,14 @@ CLI tested via `click.CliRunner` on fixture YAML in `tests/data/`.
       repo-root ``characters/`` and ``plugins/`` user dirs and the reference ``wiki_data/`` extract
       never ship. The bundled files are named after the in-game character names, which is what a
       party block addresses, so an installed copy needs no user data to run a first optimization.
+ 31. **The plugin guide is a test, not prose** (M8, R-42/R-35): PLUGINS.md's python blocks are
+      executed in document order by ``tests/test_plugins_doc.py`` against the fixture party, and
+      its console session is re-run and compared against the reported ``objective:`` value. So
+      every number in the guide is the tool's own output - the documented kernel call needs
+      ``as_int=False`` to compare expectations, which is exactly the kind of drift a prose-only
+      guide would hide.
 
-## 12. Open questions — answers recorded (see §11 items 10–30 for rationale)
+## 12. Open questions — answers recorded (see §11 items 10–31 for rationale)
 
 | # | Question (as originally open) | Answer |
 | --- | --- | --- |

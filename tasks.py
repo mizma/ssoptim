@@ -90,3 +90,10 @@ def test(c):
 def build(c):
     """Build and install as editable"""
     c.run("uv sync --editable")
+
+@task()
+def pusha(c):
+    """Push to all remotes"""
+    c.run("git push origin")
+    c.run("git push github")
+

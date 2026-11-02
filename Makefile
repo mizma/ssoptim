@@ -6,7 +6,7 @@ SHELL = bash
 
 
 build: venv
-	@uv pip install --editable .
+	@uv sync --editable
 
 freeze:
 	@uv pip freeze > requirements.txt
@@ -15,10 +15,10 @@ package: clean
 	@uv build
 
 publish: package
-	@twine upload dist/*
+	twine upload dist/*
 
 pubtest: package
-	@twine upload --repository pypitest dist/*
+	twine upload --repository pypitest dist/*
 
 clean :
 	@rm -rf dist build *.egg-info ssoptim/_version.py
@@ -30,4 +30,4 @@ install:
 	@uv pip install -r requirements.txt
 
 test:
-	@uv run pytest -q
+	uv run pytest --verbose

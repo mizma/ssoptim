@@ -32,8 +32,14 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-[project.optional-dependencies]
-dev = ["pyinstaller", "build", "twine", "pytest", "invoke"]
+[dependency-groups]
+dev = [
+    "pyinstaller",
+    "build",
+    "twine",
+    "pytest",
+    "invoke",
+]
 
 [project.urls]
 homepage = "https://github.com/koma75/SSOptim/"

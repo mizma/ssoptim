@@ -7,17 +7,17 @@
 
 The objective is opaque and non-linear, so the driver is
 ``scipy.optimize.differential_evolution`` with ``integrality=True``, integer
-bounds and integer-coefficient linear constraints (R-10, 11 item 1). Plugins
-return bigger-is-better numbers (R-21, Q-1); SciPy minimizes, so the driver
+bounds and integer-coefficient linear constraints (R-10; DESIGN.md 3 R-10 note). Plugins
+return bigger-is-better numbers (R-21, DESIGN.md 3 R-09 note); SciPy minimizes, so the driver
 negates *internally only* and reports the plugin's own value back unchanged.
 
-SciPy's constrained-integrality mode is finicky (10), so every candidate the
+SciPy's constrained-integrality mode is finicky (DESIGN.md 3 R-10 note), so every candidate the
 solver proposes is rounded and re-checked with ``constraints.verify`` (R-11);
 when nothing survived, a greedy fill (start at the user's minimums, satisfy the
 core rule, then repeatedly add the single level that improves the objective
 most until the budget is spent) takes over - the same routine doubles as the
-deterministic reference the tests enumerate against (5, M5 acceptance).
-Nothing feasible after ``runs`` restarts is an error (exit 5, 7), never a
+deterministic reference the tests enumerate against (DESIGN.md 5).
+Nothing feasible after ``runs`` restarts is an error (exit 5, DESIGN.md 7), never a
 silently relaxed run (R-11).
 """
 

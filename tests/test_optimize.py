@@ -5,7 +5,7 @@
 
 """M5 optimize.py: differential evolution vs. exhaustive reference.
 
-Acceptance (DESIGN.md 9, M5): on a reduced fixture the optimum the driver
+Acceptance (DESIGN.md 5): on a reduced fixture the optimum the driver
 reports matches a brute-force enumeration of the whole space, and every
 generated constraint holds for the returned candidate (R-11). The reduction
 keeps the model honest - the real 3-member party, real 48-variable layout,
@@ -83,7 +83,7 @@ def brute_force(problem, ctx, objective, total_level, total_level_mode="exact"):
 
 
 class TestBruteForceAgreement:
-    """The driver's optimum equals exhaustive search (M5 acceptance)."""
+    """The driver's optimum equals exhaustive search (DESIGN.md 5)."""
 
     def test_optimum_matches_enumeration(self):
         members, vars_layout, problem = reduced(10)

@@ -22,7 +22,7 @@ def objective(x, ctx) -> float:
 * `ctx` is the **tool-built** context for that candidate (section 3): the
   module never reads YAML and never maps vector positions itself (R-37, R-38).
 * **Bigger is better.** The tool maximizes and never negates or normalizes the
-  value it reports (R-21, Q-1); if your model is smaller-is-better, negate it
+  value it reports (R-21); if your model is smaller-is-better, negate it
   on your own side before returning.
 * Returning anything non-numeric, or raising, is a user-code failure: the tool
   wraps a raise into `PluginError` and exits **4** (7's exit-code table).
@@ -93,7 +93,7 @@ Helpers the tool provides (import from `ssoptim.ssoptim.plugins`):
 (`calculate_damage`, `skill_percent_to_amend`, `def_amend`, `res_amend`).
 One-argument calls use the **active** candidate context, which the optimizer
 sets on every `resolve_candidate`; pass `ctx` explicitly when you build your
-own (11 item 25).
+own (DESIGN.md 6's helper note).
 
 ```python
 from ssoptim.ssoptim.plugins import aggregate_params, resolve_talent_params

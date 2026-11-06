@@ -5,7 +5,7 @@
 
 """M1 talent.py: sparse level maps -> pinned interpolation tables (R-19, R-43).
 
-Acceptance criteria (DESIGN.md 9, M1): interpolation of the 1<->6 anchor keys
+Acceptance criteria (DESIGN.md 4.1; R-19, R-43): interpolation of the 1<->6 anchor keys
 matches the even-step rule, level 0 contributes nothing, the reserved
 duration/activation pair is validated, and the per-talent breakdown stays
 available for R-38.
@@ -49,7 +49,7 @@ class TestR19Interpolation:
         assert close_to(0.06)(table[3])
 
     def test_flat_beyond_last_anchor(self):
-        """No extrapolation past authored evidence (DESIGN 11, item 22)."""
+        """No extrapolation past authored evidence (DESIGN 4.1; R-19)."""
         table = level_map_table({2: 0.5})
         assert table[1] == 0.25
         assert all(table[level] == 0.5 for level in range(2, 7))

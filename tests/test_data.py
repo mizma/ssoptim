@@ -5,7 +5,7 @@
 
 """M1 data.py: YAML load, schema validation, scenario block, party model.
 
-Acceptance criteria (DESIGN.md 9, M1): the loader round-trips the 4.1-shaped
+Acceptance criteria (DESIGN.md 4.1, 4.2): the loader round-trips the 4.1-shaped
 fixture, cd/loop_time and multi-sources skills validate, the scenario block
 merges over the kernel defaults, and a duplicate party plus invalid character
 data both fail with the R-29 exit-2 error class.
@@ -36,7 +36,7 @@ class TestFixtureRoundTrip:
 
     def test_all_three_characters_load(self):
         chars = load_characters([CHARS])
-        # the bundled set inside the package is searched last (M7), so a fixture
+        # the bundled set inside the package is searched last (DESIGN.md 8), so a fixture
         # load sees its own characters plus the bundled ones
         assert {"Char A", "Char B", "Char C"} <= set(chars)
         assert chars["Char A"].stats == {"Atk": 6966, "HP": 94662, "DEF": 0}

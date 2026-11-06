@@ -5,7 +5,7 @@
 
 """M8 PLUGINS.md: every code snippet runs verbatim, and so does the CLI.
 
-Acceptance (DESIGN.md 9, M8): each python block of PLUGINS.md executes against
+Acceptance (DESIGN.md 8, PLUGINS.md): each python block of PLUGINS.md executes against
 the fixture party of `tests/data/characters.yml`, and the documented
 `ssoptim optimize -f ./plugins/simple_dps.py:objective` invocation reports the
 documented objective value - the guide's numbers are the tool's, not estimates.

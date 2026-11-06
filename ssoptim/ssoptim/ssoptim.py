@@ -85,7 +85,7 @@ SOLVER_DEFAULTS = {"maxiter": 300, "popsize": 24, "runs": 3, "seed": 1, "polish"
 
 
 def cmd(kwargs):
-    """Implementation.  Orchestrates the pipeline of 9 (M6).
+    """Implementation.  Orchestrates the DESIGN.md 3-7 pipeline (R-25..R-29).
 
     Args:
         kwargs (dict): the flat settings dict cli.py assembled from the click

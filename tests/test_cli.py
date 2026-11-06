@@ -5,11 +5,11 @@
 
 """M6 cli.py + report.py: options, precedence, 4.3 YAML, exit codes.
 
-Acceptance (DESIGN.md 9, M6): the documented invocation runs end-to-end and
+Acceptance (DESIGN.md 7, 4.3): the documented invocation runs end-to-end and
 writes the 4.3 result YAML; CLI options beat the config file and
 ``--scenario DEF=...`` beats the config's ``scenario:`` block; ``--show-params``
 dumps the aggregated parameter map and the effective scenario (R-36); and the
-7 exit-code table holds for each failure kind.
+DESIGN.md 7 exit-code table holds for each failure kind.
 
 The runs use the reduced fixture box (two pinned cores per member, one free
 sub talent) so the solver finishes in well under a second; the option surface,
@@ -246,7 +246,7 @@ class TestEndToEnd:
 
 
 class TestExitCodes:
-    """The 7 table: 2 usage/config, 3 infeasible, 4 plugin, 5 no feasible point."""
+    """DESIGN.md 7 exit-code table: 2 usage/config, 3 infeasible, 4 plugin, 5 no point."""
 
     @pytest.fixture
     def sandbox(self, tmp_path, monkeypatch):

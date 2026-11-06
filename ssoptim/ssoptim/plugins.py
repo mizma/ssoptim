@@ -186,7 +186,7 @@ def objective_call(objective, x, ctx):
         return float(value)
     except (TypeError, ValueError):
         raise PluginError(
-            "objective module returned a non-number {0!r}; plugins return bigger-is-better numbers (R-21, Q-1)".format(
+            "objective module returned a non-number {0!r}; plugins return bigger-is-better numbers (R-21)".format(
                 value
             )
         )

@@ -3,12 +3,12 @@
 # Copyright (c) 2026 aoi mizma <aoi.mizma@path-works.net>
 # SPDX-License-Identifier: MIT
 
-"""M2 damage.py: the vendored kernel reproduces the scratch sanity table.
+"""M2 damage.py: the vendored kernel reproduces the formula sanity table.
 
-Acceptance criteria (DESIGN.md 9, M2): the vendored file reproduces the sanity
-table the scratch reference `stella_sora_damage.py` prints (parameter names per
-DamageCalculationParameters.md), and the scenario defaults data.py merges over
-are the kernel's own neutral defaults (R-36).
+Acceptance criteria (DESIGN.md 5, R-24): the vendored file reproduces the sanity
+table this test pins (the scratch reference was deleted at vendoring; parameter
+names per DamageCalculationParameters.md), and the scenario defaults data.py merges
+match the kernel's own neutral defaults (R-36).
 """
 
 import math
@@ -79,7 +79,7 @@ class TestVendoredSanityTable:
 
 
 class TestKernelSemantics:
-    """The formula behaviour the objectives of M3 depend on."""
+    """The formula behaviour the built-in objective (6.3 item 1) depends on."""
 
     def test_dot_never_crits(self):
         """is_dot drops the crit expectation entirely (R-24, is_dot of R-32)."""

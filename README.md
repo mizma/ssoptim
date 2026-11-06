@@ -9,8 +9,9 @@ the objective ("what number are we maximizing?") is a **pluggable calculation mo
 — built-in defaults plus user-supplied modules that can be dropped in next to an
 installed copy of the tool without rebuilding it.
 
-> **Status:** design stage (0.1.0 T.B.D.). The CLI below is the planned 0.1.0 interface;
-> see [DESIGN.md](DESIGN.md) for the implementation plan (it restates the game-spec rules the
+> **Status:** 0.1.0 in development (M0–M8 implemented, test suite green). The CLI below is the
+> 0.1.0 interface;
+> see [DESIGN.md](DESIGN.md) for the design and requirements (it restates the game-spec rules the
 > design depends on) and [PLUGINS.md](PLUGINS.md) for the objective-module contract.
 
 ## Installation
@@ -353,7 +354,7 @@ Custom plugins live outside the package and are referenced by spec:
 ## Known Issues
 
 Implementor-level list of what is still open (packaging asymmetries, data keys the built-ins
-do not read, planned M9+ features) is in [DESIGN.md](DESIGN.md) 13; the list below is what a
+do not read, planned M9+ features) is in [DESIGN.md](DESIGN.md) 10; the list below is what a
 user of 0.1.0 sees.
 
 * The tool is pre-release: the bundled character data set is the three authored characters

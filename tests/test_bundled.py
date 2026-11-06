@@ -5,7 +5,7 @@
 
 """M7 packaging: the bundled character set and the installed CLI.
 
-Acceptance (DESIGN.md 9, M7): the bundled set loads and round-trips through the
+Acceptance (DESIGN.md 8): the bundled set loads and round-trips through the
 4.1 validation rules, and an installed copy works with `optimize` and its
 config defaults.  The wheel-level check builds the distribution inside the
 test session, so a packaging regression - bundled data not shipped, or the

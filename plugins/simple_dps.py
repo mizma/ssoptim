@@ -3,7 +3,7 @@
 # Copyright (c) 2026 aoi mizma <aoi.mizma@path-works.net>
 # SPDX-License-Identifier: MIT
 
-"""Shipped DPS sample plugin (DESIGN.md 6.3 item 2, M3/M8).
+"""Shipped DPS sample plugin (DESIGN.md 6.3 item 2).
 
 This is an **external** objective module: it lives in the repo's `plugins/`
 dir and is loaded by path (`ssoptim optimize -f ./plugins/simple_dps.py:objective`),
@@ -139,7 +139,7 @@ def effective_params(ctx):
 
 
 def objective(x, ctx):
-    """Main-character DPS: bigger is better (R-21, Q-1).
+    """Main-character DPS: bigger is better (R-21).
 
     Args:
         x (sequence): flat level vector (R-08) - read through the tool's level

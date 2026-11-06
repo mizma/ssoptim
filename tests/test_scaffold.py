@@ -5,7 +5,7 @@
 
 """M0 scaffold: the package installs, imports and exposes the CLI shape.
 
-Acceptance criteria (DESIGN.md §9, M0): `ssoptim --version` prints a version
+Acceptance criteria (DESIGN.md 8, 7): `ssoptim --version` prints a version
 (the click-cutter fallback `0.0.0+dev` from a bare checkout, otherwise the
 setuptools-scm version) and `ssoptim optimize` runs.
 """
@@ -19,7 +19,7 @@ from ssoptim.cli import cli
 
 
 def test_version_fallback_from_bare_checkout():
-    """`ssoptim --version` works and reports the built/dev version (M0)."""
+    """`ssoptim --version` works and reports the built/dev version (scaffold shape)."""
     assert __version__
     result = CliRunner().invoke(cli, ["--version"])
     assert result.exit_code == 0
@@ -27,15 +27,15 @@ def test_version_fallback_from_bare_checkout():
 
 
 def test_group_shape_one_optimize_verb():
-    """0.1.0 registers exactly one command: `optimize` (§11 item 23)."""
+    """0.1.0 registers exactly one command: `optimize` (DESIGN.md 7)."""
     assert list(cli.commands.keys()) == ["optimize"]
 
 
 def test_optimize_runs_the_whole_surface():
-    """The verb is live and takes every option of 7 (M6 state).
+    """The verb is live and takes every option of DESIGN.md 7 (0.1.0 state).
 
     A bare invocation is now a usage error (no party, no budget), which the
-    scaffold test of M0 could not tell apart: the stub used to exit 0, while
+    scaffold test above could not tell apart: the stub used to exit 0, while
     the implemented pipeline reports the missing configuration with exit 2.
     """
     result = CliRunner().invoke(cli, ["optimize", "-v"])

@@ -10,7 +10,7 @@ map (R-19, R-20).  Only the anchors the author bothered to write are present;
 the loader expands them once into a table indexed by level so no objective
 module re-reads YAML per evaluation (§5 invariant, R-38).
 
-Interpolation is pinned in §4.1 / §11 item 22:
+Interpolation is pinned in DESIGN.md 4.1 (R-19):
 
 * level 0 contributes nothing, and the origin ``(0, 0)`` acts as an anchor,
 * values between two declared anchors change in an even step,
@@ -132,8 +132,8 @@ def duration_table(duration, max_level=MAX_SUB_LEVEL):
     declared anchor at or below the level applies.  Levels below the first
     anchor take that first anchor: a gated buff exists at every owned level,
     and 0 s would mean "no buff".  A bare number is the same at every level.
-    (DESIGN/README state this explicitly because the R-19 even-step rule does
-    not reproduce the documented 10/12 band; see the conflict note.)
+    (DESIGN.md 3's R-43 note states this: the R-19 even-step rule does
+    not reproduce the documented 10/12 band; §10 K-10 keeps the gap.)
     """
     if duration is None:
         return None

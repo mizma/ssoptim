@@ -5,7 +5,7 @@
 
 """M4 constraints.py: generated bounds and constraint matrices.
 
-Acceptance criteria (DESIGN.md 9, M4): the generated matrices verified by a
+Acceptance criteria (DESIGN.md 5): the generated matrices verified by a
 direct check of R-04 (core == 2), R-13 (budget), R-14 (per-character totals)
 and R-15 (per-talent bounds) on the fixtures; an infeasible input flagged
 (exit-3 class); and a duplicate party still flagged with exit 2 (R-41).
@@ -62,7 +62,7 @@ class TestR15Bounds:
         assert problem["bounds"][14] == (0, 6)
 
     def test_positional_talent_bounds(self):
-        """Positional entries align to declaration order (4.2, 11 item 4)."""
+        """Positional entries align to declaration order (4.2; DESIGN.md 3 R-15 note)."""
         members_party = party()
         restrictions = {"main": {"talent_levels": [{"min": 1, "max": 1}]}}
         problem = build_problem(members_party["members"], members_party["vars"], 40, restrictions=restrictions)

@@ -10,8 +10,8 @@ run config, never hand-written: integer bounds per talent (core 0/1, sub 0/6,
 tightened by the user's per-talent bounds of R-15/R-16) and integer-coefficient
 linear constraints (core sum == 2 per member from data, R-04/R-17; per-character
 totals, R-14; the budget row, R-13). Per-talent bounds stay variable bounds
-rather than constraint rows (11, item 2) because differential evolution needs a
-tight box for integrality to behave.
+rather than constraint rows (DESIGN.md 3 R-15 note) as differential evolution
+needs a tight box for integrality to behave.
 
 A constraint set no candidate can satisfy is reported as Infeasible (exit 3,
 7) rather than silently relaxed (R-11); the feasibility arithmetic needs no
@@ -191,7 +191,7 @@ def build_problem(members, vars_layout, total_level, total_level_mode="exact", r
             lower.append(int(block.get("min", 0)))
             upper.append(int(block.get("max", MAX_SUB_LEVEL * 16)))
 
-    # R-13: the budget row; exact sum by default, <= for at_most (11 item 3).
+    # R-13: the budget row; exact sum by default, <= for at_most (DESIGN.md 3 note).
     if total_level is None:
         raise InputError("total_level (the budget) is mandatory (R-13, -t)")
     if total_level_mode not in ("exact", "at_most"):

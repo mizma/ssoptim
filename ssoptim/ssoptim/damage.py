@@ -33,7 +33,7 @@ as the fraction of Atk, so a skill that deals 250% Atk (fraction 2.5) has
 skillPercentAmend = 2_500_000, i.e. percent * 10000.
 Use `skill_percent_to_amend(250)` to convert from a plain percentage.
 
-Vendoring note (R-24, 11 item 6): this is a faithful transcription of the
+Vendoring note (R-24, DESIGN.md 8): this is a faithful transcription of the
 scratch reference `stella_sora_damage.py`, deleted once vendored, so the
 wheel stays self-contained. The kernel is apply-everything (R-33): it
 consumes every argument it is handed and applies no policy about which

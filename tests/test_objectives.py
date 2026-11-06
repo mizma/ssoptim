@@ -5,7 +5,7 @@
 
 """M3: built-in objective + the tool-built ctx + the DPS sample plugin.
 
-Acceptance criteria (DESIGN.md 9, M3): the default objective on a fixed 3-char
+Acceptance criteria (DESIGN.md 6, 6.3): the default objective on a fixed 3-char
 fixture equals a hand-computed value from the 4.1 constants, simple_dps
 reproduces a hand-computed main-character DPS from loop_time/cd and its two
 sources (per-source buffers, R-32/R-34), and both plugins take (x, ctx) and

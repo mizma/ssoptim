@@ -1,0 +1,15 @@
+# sdist content control (§8 packaging promise, §10 K-1):
+# the wheel already ships exactly the package modules plus ssoptim/characters/*.yml
+# (include-package-data = false + explicit [tool.setuptools.package-data]), but the
+# sdist manifest follows the VCS-tracked file list, so the repo-only dirs are pruned
+# here to keep both halves of the promise. The repo-root characters/ and plugins/ are
+# the user's own copies; wiki_data/ is git-ignored reference material (R-44) anyway.
+# The patterns are root-level names, so ssoptim/characters/ (the bundled set) stays in.
+skip tests
+prune tests
+skip characters
+prune characters
+skip plugins
+prune plugins
+skip wiki_data
+prune wiki_data

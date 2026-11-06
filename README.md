@@ -353,9 +353,9 @@ Custom plugins live outside the package and are referenced by spec:
 
 ## Known Issues
 
-Implementor-level list of what is still open (packaging asymmetries, data keys the built-ins
-do not read, planned M9+ features) is in [DESIGN.md](DESIGN.md) 10; the list below is what a
-user of 0.1.0 sees.
+Implementor-level list of what is still open (data keys the built-ins do not read, unverified
+release artefacts, planned M9+ features) is in [DESIGN.md](DESIGN.md) 10; the list below is what
+a user of 0.1.0 sees.
 
 * The tool is pre-release: the bundled character data set is the three authored characters
   (チトセ, アヤメ, テレサ - values read off the reference wiki extract), other characters are
@@ -417,6 +417,7 @@ Click CLI template, extended with a data set, pluggable objective modules, and t
 ssoptim/                 # repo root (project "SSOptim")
 ├── pyproject.toml       # ssoptim = "ssoptim.cli:main"
 ├── Makefile             # uv/build/publish targets
+├── MANIFEST.in          # sdist prune: tests/, characters/, plugins/, wiki_data/ stay out
 ├── tasks.py             # invoke tasks
 ├── CHANGES.md           # release history
 ├── DESIGN.md            # design specification

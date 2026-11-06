@@ -7,15 +7,16 @@
 
 Acceptance (DESIGN.md 8): the bundled set loads and round-trips through the
 4.1 validation rules, and an installed copy works with `optimize` and its
-config defaults.  The wheel-level check builds the distribution inside the
-test session, so a packaging regression - bundled data not shipped, or the
-test fixtures shipped - fails here rather than in a release.
+config defaults.  The wheel- and sdist-level checks build the distribution
+inside the test session, so a packaging regression - bundled data not shipped,
+or the test fixtures shipped - fails here rather than in a release.
 """
 
 import glob
 import os
 import shutil
 import subprocess
+import tarfile
 import zipfile
 
 import pytest
@@ -152,3 +153,34 @@ class TestWheelContents:
     def test_repo_only_dirs_are_not_shipped(self, wheel_names):
         for prefix in ("tests/", "wiki_data/", "characters/", "plugins/"):
             assert not [n for n in wheel_names if n.startswith(prefix)]
+
+
+@pytest.fixture(scope="module")
+def sdist_names(tmp_path_factory):
+    """Names of the built sdist, stripped of its versioned top-level dir so the
+    prefix checks read like the wheel's (§10 K-1: MANIFEST.in prunes the repo-only
+    dirs from the VCS-based manifest)."""
+    out = tmp_path_factory.mktemp("sdist")
+    uv = shutil.which("uv")
+    assert uv, "uv not found"
+    completed = subprocess.run([uv, "build", "--out-dir", str(out)], cwd=ROOT, capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr[-500:]
+    sdist = sorted(glob.glob(str(out / "*.tar.gz")))[-1]
+    with tarfile.open(sdist, "r:gz") as archive:
+        names = archive.getnames()
+    root = names[0]
+    return [n[len(root) + 1:] for n in names if n != root]
+
+
+class TestSdistContents:
+    """The sdist keeps the same promise through MANIFEST.in (§8, §10 K-1)."""
+
+    def test_bundled_characters_are_shipped(self, sdist_names):
+        shipped = [n for n in sdist_names if n.startswith("ssoptim/characters/")]
+        assert len(shipped) == 3
+        for name in BUNDLED:
+            assert any(name in n for n in shipped)
+
+    def test_repo_only_dirs_are_not_shipped(self, sdist_names):
+        for prefix in ("tests/", "wiki_data/", "characters/", "plugins/"):
+            assert not [n for n in sdist_names if n.startswith(prefix)]

@@ -792,6 +792,7 @@ ssoptim/                     # repo root = project "SSOptim"
 ├── DamageCalculationParameters.md   # existing reference doc (kept)
 ├── LICENSE                          # existing (MIT, aoi mizma)
 ├── Makefile                         # click-cutter targets (build/venv/package/publish/clean)
+├── MANIFEST.in                      # sdist manifest prunes tests/, characters/, plugins/, wiki_data/
 ├── README.md                        # user-facing: usage, config, plugins, install, dev
 ├── PLUGINS.md                       # detailed plugin development guide; its python blocks run in tests/test_plugins_doc.py
 ├── pyproject.toml                   # setuptools + setuptools-scm, [project.scripts] ssoptim = "ssoptim.cli:main"
@@ -800,7 +801,7 @@ ssoptim/                     # repo root = project "SSOptim"
 │                                    #   never read at build or runtime; authoring source for ssoptim/characters/
 ├── characters/          # user data set (searched by the tool); <name>.yml
 ├── plugins/             # example/custom objective plugins; simple_dps.py is the shipped DPS sample (§6.3)
-├── tests/               # pytest suite + fixtures tests/data/*.yml (excluded from wheel)
+├── tests/               # pytest suite + fixtures tests/data/*.yml (excluded from wheel and sdist)
 └── ssoptim/             # importable package (package_name = ssoptim)
     ├── __init__.py      # __version__ fallback from _version.py (setuptools-scm)
     ├── cli.py           # click definitions + main(); delegates every command to impl.cmd(kwargs)
@@ -849,7 +850,11 @@ Notes:
   `characters/` and `plugins/` user dirs and the reference `wiki_data/` extract never ship. The
   bundled files are named after the in-game character names, which is what a `party:` block
   addresses, so an installed copy can run a first optimization with no user data at all. The
-  sdist side of that promise is §10 K-1.
+  sdist half needs the same control on the other side of the build: setuptools' sdist walks the
+  VCS-tracked file list, so `MANIFEST.in` prunes `tests`, `characters`, `plugins` and `wiki_data`
+  from that manifest (root-level names only, so the bundled `ssoptim/characters/` stays inside),
+  and `tests/test_bundled.py` now enforces both halves - `TestWheelContents` on the `.whl`,
+  `TestSdistContents` on the `.tar.gz`.
 * **Data authoring (R-44):** the チトセ、アヤメ、テレサ wiki extract lives in the workspace under
   `wiki_data/` as **reference only** - git-ignored, never committed, and absent from a fresh
   checkout - so the committed artifact is the authored YAML in `ssoptim/characters/` and neither
@@ -899,13 +904,12 @@ explicitly, and README's Known Issues lists the shipped set.
 
 | # | Issue | Where it bites today | What would close it |
 | --- | --- | --- | --- |
-| K-1 | **sdist packaging asymmetry**: the wheel ships exactly the package plus `ssoptim/characters/*.yml` (`include-package-data = false` + explicit package data, see §8's packaging note), but setuptools' sdist still walks the **VCS-tracked** files, so `dist/*.tar.gz` carries `tests/data/*.yml` and the repo-root `characters/example.yml`. the wheel half of §8's packaging promise holds, the sdist half does not | only affects source-distribution consumers (`sdist` -> `pip sdist`), not `pipx`/`uv tool install` users, and no runtime behaviour | add a `MANIFEST.in` prune (`skip tests`, `skip characters`, `prune wiki_data`) and re-verify with `tests/test_bundled.py::TestWheelContents`, or restate the §8 packaging note as wheel-only and keep the sdist as-is |
 | K-2 | **Free-form keys the built-ins do not read**: the bundled characters carry mechanics keys outside the documented vocabulary (`extraSkillPct`, `extraAutoAttackPct`, `extraUltimatePct`, `elemAquaDmgTaken`, `Atk_multiplier_ally`, `Atk_multiplier_cond`, `Atk_multiplier_aqua`, `slotSkillCdMod`, `duration_mod`, `shield_absorb_pct`, `shield_duration_pct`, `spGain`, `break_penMod`, `stun_duration`) | they load, validate and aggregate (R-20) but neither `auto_attack` nor the shipped `simple_dps` consumes them, so those talents do not move the built-in objective value | a plugin reads them (they are visible in `ctx["aggregated"]` and in the per-talent breakdown), or a later built-in models them; the keys are listed in `PLUGINS.md` as "passed through, plugin-interpreted" |
 | K-3 | **`activation` vocabulary is too small for the authored data** (R-43 fixes exactly the four skill keys): dodge-triggered buffs (チトセ's 石穿's dance) are authored with `activation: auto_skill` as the closest legal value, flagged in the YAML comment | an uptime-derived value for those talents is approximate for a gating-minded plugin | extend the pair's reading (e.g. a fifth `dodge`/`avoid` activation name plus the data validation that follows in R-43) or keep it plugin-side |
 | K-4 | **Stack caps are comments only**: "10 stacks", "20 stacks", "3 stacks" appear as YAML comments, not as data | a plugin sees the per-talent value but cannot cap stacks or know their rate | add an authored cap field (e.g. `stacks:` as a level map, kept out of the aggregate like the R-43 pair) and document it next to `duration`/`activation` |
 | K-5 | **The built-in objective is single-target, main-slot only**: `auto_attack` scores the main's auto skill alone (support `sub_skill`, sub-slot `auto_skill`, ult portions and marks are untouched), and 0.1.0 ships no built-in DPS (§9) | party-wide support buffs do move the score through the aggregated map (R-20), but support *damage* never does | the §9 `dps` built-in or the shipped `simple_dps` external plugin, which already reads both slots' timing data |
 | K-6 | **Exit 5 has no end-to-end trigger**: `NoFeasible` (§7's exit 5) is exercised only at the class level with a stubbed solver, because the greedy fill is complete enough that no fixture box currently fails it | a user could see a different exit than the table promises on a box we have not built | construct (or keep searching for) a constraint set that `check_feasible` accepts and both the DE restarts and the greedy fill fail, then assert exit 5 through the CLI |
-| K-7 | **Release-tooling targets are unverified here**: `README.md` Development's PyInstaller freeze and the `tasks.py`/Makefile `freeze`/`package`/`publish`/`pubtest` paths were not exercised in this environment (only `uv build` and an isolated `uv pip install` from the wheel) | a built `dist/ssoptim(.exe)` and a published sdist are untested artefacts | run `tasks.py freeze`/`package`/`publish` once the release is planned, together with K-1's sdist fix |
+| K-7 | **Release-tooling targets are unverified here**: `README.md` Development's PyInstaller freeze and the `tasks.py`/Makefile `freeze`/`package`/`publish`/`pubtest` paths were not exercised in this environment (only `uv build` and an isolated `uv pip install` from the wheel) | a built `dist/ssoptim(.exe)` and a published sdist are untested artefacts | run `tasks.py freeze`/`package`/`publish` once the release is planned (MANIFEST.in's sdist pruning is already in place, so `publish` ships the pruned tarball) |
 | K-8 | **Planned-not-implemented milestones**: M9+ (extra built-in objectives, the bundled `dps` promotion, `chars`/`plugins`/`eval` sub-commands, multi-scenario runs) stay out of 0.1.0 by design | the CLI group registers exactly one command (§7), so the README's planned verbs are not callable | the §9 milestones, unchanged plan |
 | K-9 | **The `duration`/`activation` pair resolves per talent, not per key**: R-43 puts the pair inside one key's level map, but `talent.py` keeps one pair per talent record and `plugins/simple_dps.py` applies it to every key of that talent | a talent that mixes a gated key and an ungated key in one entry gates **both** in a gating-minded plugin; the authored data pairs them per talent, so no shipped example is wrong today | move the pair into the key's own level map in `talent.py`'s table build and read it per key in `simple_dps`, or restate R-43/§4.1 and `PLUGINS.md` in favour of the coarser per-talent reading |
 | K-10 | **A `duration` level-map entry of 0 is accepted** (`talent.py` rejects negatives and an all-zero table only) while §4.1 requires `duration > 0` | a zero band yields 0 uptime for that band silently instead of a loader error, which contradicts the §3 rule that levels below the first band inherit it | tighten the validation to reject a zero band, or document 0 as "no buff at that level" in §4.1/R-43 |
@@ -916,6 +920,12 @@ explicitly, and README's Known Issues lists the shipped set.
 | K-15 | **§8 says the bundled character set is loaded via `importlib.resources`**; `data.py` resolves the installed package's own path and globs `*.yml` | the documented mechanism does not match the code, so a reader looking for package-resource loading finds none | restate §8's annotation to the implemented lookup, or move `data.py` to `importlib.resources` |
 | K-16 | **The `at_most` budget row** is documented in `optimize.py` as "reported separately and left out of the ineq set", but it is emitted as a negated ineq row | behaviour matches §5 (`Σ all <= total_level`), the module docstring contradicts the code | restate the docstring; §5 already matches the emitted row |
 | K-17 | **The reduced fixture is broader than the deleted M5 wording suggested**: `tests/test_optimize.py` enumerates a 3-member party (one free sub-talent each, cap 4) over the real 48-variable layout, not the "2 chars, 4 sub levels" space the removed M5 milestone row named | the exhaustive-agreement test covers more than the milestone wording claimed, and that wording is gone from the document, so it can no longer be checked against the code | keep the broader fixture; record the fixture's shape in `tests/test_optimize.py` (already documented there) and do not restate it in §1–§8 |
+
+**Resolved since the M0–M8 set:** **K-1 (sdist packaging asymmetry)** closed by `MANIFEST.in`
+pruning `tests`, `characters`, `plugins` and `wiki_data` from the VCS-based sdist manifest - the
+same dirs the wheel already excludes - so both halves of §8's packaging promise now hold and
+`tests/test_bundled.py` enforces them from both sides (`TestWheelContents` on the `.whl`,
+`TestSdistContents` on the `.tar.gz`).
 
 `README.md`'s "Known Issues" section stays user-facing and short; this table is
 the implementor's list.

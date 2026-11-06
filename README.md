@@ -353,7 +353,7 @@ Custom plugins live outside the package and are referenced by spec:
 
 ## Known Issues
 
-Implementor-level list of what is still open (data keys the built-ins do not read, unverified
+Implementor-level list of what is still open (gating/activation vocabulary gaps, unverified
 release artefacts, planned M9+ features) is in [DESIGN.md](DESIGN.md) 10; the list below is what
 a user of 0.1.0 sees.
 

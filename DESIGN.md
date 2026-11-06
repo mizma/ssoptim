@@ -262,7 +262,9 @@ Notes:
   (additive vs multiplicative), or what a gated value counts, is otherwise invisible - so there is
   exactly one documented table, in `PLUGINS.md` and the built-ins, `--show-params` prints the
   aggregated map to make mismatches visible, and unknown keys are never silently applied by the
-  kernel (R-33). The R-43 `duration`/`activation` pair removes most of the remaining guesswork.
+  kernel (R-33). PLUGINS.md 4.1 enumerates the bundled set's character-specific keys as passed
+  through, plugin-interpreted, so even their aggregation is visible from one documented table.
+  The R-43 `duration`/`activation` pair removes most of the remaining guesswork.
 * **R-36 (typed `scenario:`, not plugin-only enemy constants):** DEF/RES/PEN/VUL/break are part of
   the damage formula and identical for every plugin, so they belong to the run config and are
   diffable via `--show-params`; only genuinely plugin-specific knobs go to `objective_opts:`.
@@ -854,7 +856,12 @@ Notes:
   VCS-tracked file list, so `MANIFEST.in` prunes `tests`, `characters`, `plugins` and `wiki_data`
   from that manifest (root-level names only, so the bundled `ssoptim/characters/` stays inside),
   and `tests/test_bundled.py` now enforces both halves - `TestWheelContents` on the `.whl`,
-  `TestSdistContents` on the `.tar.gz`.
+  `TestSdistContents` on the `.tar.gz`. **K-2 (free-form keys the built-ins do not read)** closed by
+documentation, as its closing clause prescribed: `PLUGINS.md` §4.1 now enumerates every mechanics
+key the bundled set carries outside the R-35 vocabulary - game meaning and a suggested plugin
+reading each - so their pass-through status is one documented table instead of guesswork; modelling
+them (extra-hit fractions, CD modifiers, conditional Atk buffs) stays the plugin's and the later
+§9 built-ins' job, and the built-in/objective code itself is untouched.
 * **Data authoring (R-44):** the チトセ、アヤメ、テレサ wiki extract lives in the workspace under
   `wiki_data/` as **reference only** - git-ignored, never committed, and absent from a fresh
   checkout - so the committed artifact is the authored YAML in `ssoptim/characters/` and neither
@@ -904,7 +911,6 @@ explicitly, and README's Known Issues lists the shipped set.
 
 | # | Issue | Where it bites today | What would close it |
 | --- | --- | --- | --- |
-| K-2 | **Free-form keys the built-ins do not read**: the bundled characters carry mechanics keys outside the documented vocabulary (`extraSkillPct`, `extraAutoAttackPct`, `extraUltimatePct`, `elemAquaDmgTaken`, `Atk_multiplier_ally`, `Atk_multiplier_cond`, `Atk_multiplier_aqua`, `slotSkillCdMod`, `duration_mod`, `shield_absorb_pct`, `shield_duration_pct`, `spGain`, `break_penMod`, `stun_duration`) | they load, validate and aggregate (R-20) but neither `auto_attack` nor the shipped `simple_dps` consumes them, so those talents do not move the built-in objective value | a plugin reads them (they are visible in `ctx["aggregated"]` and in the per-talent breakdown), or a later built-in models them; the keys are listed in `PLUGINS.md` as "passed through, plugin-interpreted" |
 | K-3 | **`activation` vocabulary is too small for the authored data** (R-43 fixes exactly the four skill keys): dodge-triggered buffs (チトセ's 石穿's dance) are authored with `activation: auto_skill` as the closest legal value, flagged in the YAML comment | an uptime-derived value for those talents is approximate for a gating-minded plugin | extend the pair's reading (e.g. a fifth `dodge`/`avoid` activation name plus the data validation that follows in R-43) or keep it plugin-side |
 | K-4 | **Stack caps are comments only**: "10 stacks", "20 stacks", "3 stacks" appear as YAML comments, not as data | a plugin sees the per-talent value but cannot cap stacks or know their rate | add an authored cap field (e.g. `stacks:` as a level map, kept out of the aggregate like the R-43 pair) and document it next to `duration`/`activation` |
 | K-5 | **The built-in objective is single-target, main-slot only**: `auto_attack` scores the main's auto skill alone (support `sub_skill`, sub-slot `auto_skill`, ult portions and marks are untouched), and 0.1.0 ships no built-in DPS (§9) | party-wide support buffs do move the score through the aggregated map (R-20), but support *damage* never does | the §9 `dps` built-in or the shipped `simple_dps` external plugin, which already reads both slots' timing data |

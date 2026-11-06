@@ -126,6 +126,29 @@ keys - character-specific mechanics - are passed through untouched.
 | `DEF_rate_mod` / `RES_rate_mod` | debuff of the target's DEF/RES |
 | `duration` / `activation` | reserved gating pair, never aggregated (R-43) |
 
+### 4.1 Passed through, plugin-interpreted (R-20, R-35)
+
+The bundled characters carry mechanics keys outside the vocabulary above. The
+tool loads, validates and **aggregates** them like any other key (R-20 - they
+are visible in `ctx["aggregated"]` and in the per-talent breakdown), but the
+built-in `auto_attack` and the shipped `simple_dps` read none of them, so a
+talent carrying only such keys does not move the shipped objective's value.
+A plugin that wants them reads them itself; the readings below are the
+conventions the game meanings suggest, not tool behaviour:
+
+| Key | Game meaning | Suggested plugin reading |
+| --- | --- | --- |
+| `extraAutoAttackPct` / `extraSkillPct` / `extraUltimatePct` | extra hits of that slot class (fraction of one application, e.g. `3.47` for Teletha's core) | multiply that class's source damage by (1 + value) |
+| `slotSkillCdMod` | CD reduction of that slot class (fraction, e.g. `-0.125` for "-1 s of 8 s") | period × (1 + value) in rate arithmetic |
+| `Atk_multiplier_cond` | Atk buff gated on a condition | fold into effective Atk × an assumed uptime fraction (R-39 `objective_opts.uptime_fraction`) |
+| `Atk_multiplier_aqua` / `Atk_multiplier_ally` | Atk buff restricted to an element/ally condition (e.g. "Aqua main's Atk while shielded") | apply only when the evaluated damage dealer meets the condition; often 0 for a buffed ally's own DPS |
+| `elem{E}DmgTaken` (also `..._unchained` variants) | incoming-damage modifier (defensive) | irrelevant to a damage/DPS objective; ignore |
+| `shield_absorb_pct` / `shield_duration_pct` | surge-shield absorb / duration | survivability, not damage |
+| `duration_mod` | skill area/wave duration % | may scale that skill's buff uptime fraction |
+| `spGain` | SP gained on an apply | outside the model: 0.1.0 simulates no energy/charge (§2 non-goal) |
+| `break_penMod` | PEN contribution to break value | outside the model: break/mark state unmodelled (R-39) |
+| `stun_duration` | stun, seconds | crowd control, not damage |
+
 **Ownership** (R-33/R-34): the kernel applies every argument it is given and
 knows nothing about talent keys or skills. The plugin (a) picks the argument
 set per damage source and (b) folds `Atk_multiplier`/`Atk_absMod` and any other
